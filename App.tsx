@@ -19,11 +19,20 @@
 //   },
 // });
 
-import React from 'react';
-import LoginScreen from './app/LoginScreen';
+
+
+// import React from 'react';
+// import LoginScreen from './app/LoginScreen';
+
+// export default function App() {
+//   return (
+//     <LoginScreen />
+//   );
+// }
+
+
+import SignUpScreen from './app/signup';
 
 export default function App() {
-  return (
-    <LoginScreen />
-  );
+  return <SignUpScreen />;
 }
