@@ -1,21 +1,53 @@
 import React, { useState } from 'react';
-import { 
-  View, Text, TextInput, TouchableOpacity, 
-  StyleSheet, KeyboardAvoidingView, Platform, 
-  Dimensions, ScrollView 
+import {
+  View, Text, TextInput, TouchableOpacity,
+  StyleSheet, KeyboardAvoidingView, Platform,
+  Dimensions, ScrollView
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+
+import { auth } from '../config/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { Alert, ActivityIndicator } from 'react-native';
+
 const { width, height } = Dimensions.get('window');
 
-// Navigation සඳහා props එකතු කිරීම
+
 const SignUpScreen = ({ navigation }: any) => {
   const [name, setName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+
+  // Register Logic
+
+  const handleSignUp = async () => {
+    if (email === '' || password === '' || name === '') {
+      Alert.alert("Error", "Please fill all fields");
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      Alert.alert("Success", "Account created!", [
+        { text: "OK", onPress: () => navigation.navigate('Login') }
+      ]);
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <View style={styles.container}>
@@ -23,13 +55,13 @@ const SignUpScreen = ({ navigation }: any) => {
       <View style={styles.topCircle} />
       <View style={styles.bottomCircle} />
 
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.innerContainer}
       >
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           <View style={styles.headerContainer}>
-            <Text style={styles.logoText}>Create<Text style={{color: '#EE5253'}}> Account</Text></Text>
+            <Text style={styles.logoText}>Create<Text style={{ color: '#EE5253' }}> Account</Text></Text>
             <Text style={styles.subtitle}>Join ShelfLife Today</Text>
           </View>
 
@@ -54,15 +86,25 @@ const SignUpScreen = ({ navigation }: any) => {
               <TextInput style={styles.input} placeholder="Confirm Password" placeholderTextColor="#999" secureTextEntry onChangeText={(text) => setConfirmPassword(text)} />
             </View>
 
-            <TouchableOpacity activeOpacity={0.8} style={styles.buttonShadow}>
-              <LinearGradient colors={['#FF6B6B', '#EE5253']} style={styles.signUpButton} start={{x: 0, y: 0}} end={{x: 1, y: 0}}>
-                <Text style={styles.signUpButtonText}>Sign Up</Text>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.buttonShadow}
+              onPress={handleSignUp} 
+              disabled={loading}     //disable button while loading
+            >
+              <LinearGradient colors={['#FF6B6B', '#EE5253']} style={styles.signUpButton} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                {loading ? (
+                  <ActivityIndicator color="#fff" /> // loading spinner
+                ) : (
+                  <Text style={styles.signUpButtonText}>Sign Up</Text>
+                )}
               </LinearGradient>
             </TouchableOpacity>
           </View>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>
+            
             {/* මෙන්න මෙතන navigation navigate එක එකතු කළා */}
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
               <Text style={styles.signInText}>Login</Text>
@@ -74,7 +116,7 @@ const SignUpScreen = ({ navigation }: any) => {
   );
 };
 
-// Styles කලින් වගේමයි...
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FB' },
   innerContainer: { flex: 1 },
