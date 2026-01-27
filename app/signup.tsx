@@ -9,9 +9,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 
-import { auth } from '../config/firebase';
+import { auth,db} from '../config/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { Alert, ActivityIndicator } from 'react-native';
+import { doc, setDoc } from 'firebase/firestore';
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,28 +27,35 @@ const SignUpScreen = ({ navigation }: any) => {
   // Register Logic
 
   const handleSignUp = async () => {
-    if (email === '' || password === '' || name === '') {
-      Alert.alert("Error", "Please fill all fields");
-      return;
-    }
-    if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
-      return;
-    }
+  if (email === '' || password === '' || name === '') {
+    Alert.alert("Error", "Please fill all fields");
+    return;
+  }
 
-    setLoading(true);
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      Alert.alert("Success", "Account created!", [
-        { text: "OK", onPress: () => navigation.navigate('Login') }
-      ]);
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    // 1. Firebase Auth එකේ User කෙනෙක් හදනවා
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
+    // 2. ඒ ලැබුණු User ID එක පාවිච්චි කරලා "users" collection එකේ දත්ත Save කරනවා
+    await setDoc(doc(db, "users", user.uid), {
+      fullName: name,
+      email: email,
+      uid: user.uid,
+      createdAt: new Date().toISOString()
+    });
+
+    Alert.alert("Success", "Account created successfully!", [
+      { text: "OK", onPress: () => navigation.navigate('Login') }
+    ]);
+
+  } catch (error: any) {
+    Alert.alert("Error", error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <View style={styles.container}>
