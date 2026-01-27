@@ -3,16 +3,19 @@ import {
     View, Text, StyleSheet, FlatList, Image,
     TouchableOpacity, Alert, ActivityIndicator, Dimensions
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { db, auth } from '../config/firebase';
 import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const Inventory = ({ route, navigation }: any) => {
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Dashboard එකෙන් එවන Category එක
     const selectedCategory = route.params?.category || 'All';
 
     useEffect(() => {
@@ -55,9 +58,11 @@ const Inventory = ({ route, navigation }: any) => {
         const today = new Date();
         const diffDays = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         const isUrgent = diffDays <= 3;
+        const statusColor = isUrgent ? '#EE5253' : '#FF9F43';
 
         return (
             <TouchableOpacity
+                activeOpacity={0.9}
                 style={styles.itemCard}
                 onPress={() => navigation.navigate('EditItem', { itemId: item.id })}
             >
@@ -70,15 +75,20 @@ const Inventory = ({ route, navigation }: any) => {
                         </View>
                     )}
                 </View>
+                
                 <View style={styles.itemDetails}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemCategory}>{item.category}</Text>
-                    <Text style={[styles.expiryText, { color: isUrgent ? '#EE5253' : '#636E72' }]}>
-                        Exp: {expDate.toLocaleDateString()} ({diffDays <= 0 ? "Expired" : `${diffDays} days left`})
+                    <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+                    <View style={styles.badge}>
+                        <Text style={styles.itemCategory}>{item.category}</Text>
+                    </View>
+                    <Text style={[styles.expiryText, { color: statusColor }]}>
+                        <Ionicons name="time-outline" size={12} color={statusColor} /> 
+                        {diffDays <= 0 ? " Expired" : ` ${diffDays} days left`}
                     </Text>
                 </View>
-                <TouchableOpacity onPress={() => handleDelete(item.id)}>
-                    <Ionicons name="trash-outline" size={24} color="#EE5253" />
+
+                <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item.id)}>
+                    <Ionicons name="trash-outline" size={22} color="#EE5253" />
                 </TouchableOpacity>
             </TouchableOpacity>
         );
@@ -86,13 +96,29 @@ const Inventory = ({ route, navigation }: any) => {
 
     return (
         <View style={styles.container}>
+            <StatusBar style="dark" />
+            
+            {/* Background Decor */}
+            <View style={styles.topCircle} />
+            <View style={styles.bottomCircle} />
+
+            {/* Header Section */}
             <View style={styles.header}>
-                <Text style={styles.title}>{selectedCategory} Pantry</Text>
-                <Text style={styles.subTitle}>{items.length} Items Found</Text>
+                <View>
+                    <Text style={styles.title}>{selectedCategory} <Text style={{color: '#EE5253'}}>Pantry</Text></Text>
+                    <Text style={styles.subTitle}>{items.length} Items discovered</Text>
+                </View>
+                <View style={styles.headerIconContainer}>
+                    <LinearGradient colors={['#FF6B6B', '#EE5253']} style={styles.headerBadge}>
+                        <Ionicons name="cart-outline" size={20} color="#fff" />
+                    </LinearGradient>
+                </View>
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#EE5253" style={{ marginTop: 50 }} />
+                <View style={styles.centerLoader}>
+                    <ActivityIndicator size="large" color="#EE5253" />
+                </View>
             ) : (
                 <FlatList
                     data={items}
@@ -102,8 +128,11 @@ const Inventory = ({ route, navigation }: any) => {
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
-                            <Ionicons name="basket-outline" size={80} color="#DDD" />
+                            <Ionicons name="basket-outline" size={100} color="#DDD" />
                             <Text style={styles.emptyText}>Your pantry is empty!</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('Add')} style={styles.addNowBtn}>
+                                <Text style={styles.addNowText}>Add Item Now</Text>
+                            </TouchableOpacity>
                         </View>
                     }
                 />
@@ -114,27 +143,58 @@ const Inventory = ({ route, navigation }: any) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8F9FB' },
-    header: { padding: 25, paddingTop: 60, backgroundColor: '#fff', borderBottomLeftRadius: 30, borderBottomRightRadius: 30, elevation: 5 },
-    title: { fontSize: 24, fontWeight: 'bold', color: '#2D3436' },
-    subTitle: { fontSize: 14, color: '#ADADAD', marginTop: 5 },
-    listContent: { padding: 20 },
+    centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    
+    // Background Decorations
+    topCircle: { position: 'absolute', width: width * 1.3, height: width * 1.3, borderRadius: width * 0.65, backgroundColor: '#FF6B6B15', top: -height * 0.25, right: -width * 0.3 },
+    bottomCircle: { position: 'absolute', width: width * 1.1, height: width * 1.1, borderRadius: width * 0.55, backgroundColor: '#FF6B6B10', bottom: -height * 0.15, left: -width * 0.4 },
+
+    header: { 
+        paddingHorizontal: 25, 
+        paddingTop: 65, 
+        paddingBottom: 25, 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center' 
+    },
+    title: { fontSize: 30, fontWeight: '900', color: '#2D3436' },
+    subTitle: { fontSize: 14, color: '#ADADAD', marginTop: 3, fontWeight: '500' },
+    headerIconContainer: { elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
+    headerBadge: { width: 45, height: 45, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
+
+    listContent: { paddingHorizontal: 25, paddingBottom: 100 },
+    
     itemCard: {
-        flexDirection: 'row', backgroundColor: '#fff', borderRadius: 20,
-        padding: 15, marginBottom: 15, alignItems: 'center', elevation: 3,
-        shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10
+        flexDirection: 'row', 
+        backgroundColor: '#fff', 
+        borderRadius: 25,
+        padding: 15, 
+        marginBottom: 18, 
+        alignItems: 'center', 
+        elevation: 8,
+        shadowColor: '#000', 
+        shadowOpacity: 0.08, 
+        shadowRadius: 15,
+        borderWidth: 1,
+        borderColor: '#fff'
     },
     itemImageContainer: { marginRight: 15 },
-    itemImage: { width: 60, height: 60, borderRadius: 15 },
+    itemImage: { width: 70, height: 70, borderRadius: 20 },
     placeholderImage: { 
-        width: 60, height: 60, borderRadius: 15, 
-        backgroundColor: '#FF6B6B10', justifyContent: 'center', alignItems: 'center' 
+        width: 70, height: 70, borderRadius: 20, 
+        backgroundColor: '#F1F3F6', justifyContent: 'center', alignItems: 'center' 
     },
     itemDetails: { flex: 1 },
-    itemName: { fontSize: 18, fontWeight: 'bold', color: '#2D3436' },
-    itemCategory: { fontSize: 12, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1 },
-    expiryText: { fontSize: 13, marginTop: 5, fontWeight: '600' },
-    emptyContainer: { alignItems: 'center', marginTop: 100 },
-    emptyText: { color: '#ADADAD', marginTop: 10, fontSize: 16 }
+    itemName: { fontSize: 18, fontWeight: 'bold', color: '#2D3436', marginBottom: 4 },
+    badge: { alignSelf: 'flex-start', backgroundColor: '#F1F3F6', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8, marginBottom: 5 },
+    itemCategory: { fontSize: 10, color: '#636E72', fontWeight: '800', textTransform: 'uppercase' },
+    expiryText: { fontSize: 13, fontWeight: '700' },
+    deleteBtn: { padding: 10 },
+
+    emptyContainer: { alignItems: 'center', marginTop: height * 0.15 },
+    emptyText: { color: '#ADADAD', marginTop: 15, fontSize: 18, fontWeight: '600' },
+    addNowBtn: { marginTop: 20 },
+    addNowText: { color: '#EE5253', fontWeight: 'bold', fontSize: 16 }
 });
 
 export default Inventory;
