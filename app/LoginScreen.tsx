@@ -2,18 +2,40 @@ import React, { useState } from 'react';
 import { 
   View, Text, TextInput, TouchableOpacity, 
   StyleSheet, KeyboardAvoidingView, Platform, 
-  Dimensions 
+  Dimensions, Alert, ActivityIndicator 
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+// Firebase Imports
+import { auth } from '../config/firebase'; 
+import { signInWithEmailAndPassword } from 'firebase/auth';
+
 const { width, height } = Dimensions.get('window');
 
-// Navigation සඳහා props එකතු කිරීම
 const LoginScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState<string>(''); 
   const [password, setPassword] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const handleLogin = async () => {
+    if (email === '' || password === '') {
+      Alert.alert("Error", "Please enter both email and password");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // ලොග් වුණාම Dashboard එකට යන්න
+      navigation.navigate('Dashboard'); 
+    } catch (error: any) {
+      Alert.alert("Login Failed", "Invalid email or password");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -57,14 +79,24 @@ const LoginScreen = ({ navigation }: any) => {
             />
           </View>
 
-          <TouchableOpacity activeOpacity={0.8} style={styles.buttonShadow}>
+          {/* Login Button - මෙන්න මෙතන තමයි වෙනස් කළේ */}
+          <TouchableOpacity 
+            activeOpacity={0.8} 
+            style={styles.buttonShadow}
+            onPress={handleLogin} 
+            disabled={loading}    // diasable button while loading
+          >
             <LinearGradient
               colors={['#FF6B6B', '#EE5253']} 
               style={styles.loginButton}
               start={{x: 0, y: 0}}
               end={{x: 1, y: 0}}
             >
-              <Text style={styles.loginButtonText}>Login</Text>
+              {loading ? (
+                <ActivityIndicator color="#fff" /> // circular loading spinner
+              ) : (
+                <Text style={styles.loginButtonText}>Login</Text>
+              )}
             </LinearGradient>
           </TouchableOpacity>
 
@@ -75,7 +107,6 @@ const LoginScreen = ({ navigation }: any) => {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account? </Text>
-          {/* මෙන්න මෙතන navigation navigate එක එකතු කළා */}
           <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
             <Text style={styles.signUpText}>Sign Up</Text>
           </TouchableOpacity>
@@ -85,7 +116,6 @@ const LoginScreen = ({ navigation }: any) => {
   );
 };
 
-// Styles කලින් වගේමයි...
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FB' },
   contentWrapper: { flex: 1, justifyContent: 'center', paddingHorizontal: 30, zIndex: 1 },
