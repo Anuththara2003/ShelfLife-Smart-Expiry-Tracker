@@ -29,7 +29,7 @@ const LoginScreen = ({ navigation }: any) => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       // ලොග් වුණාම Dashboard එකට යන්න
-      navigation.navigate('Dashboard'); 
+      navigation.replace('MainTabs'); 
     } catch (error: any) {
       Alert.alert("Login Failed", "Invalid email or password");
     } finally {
