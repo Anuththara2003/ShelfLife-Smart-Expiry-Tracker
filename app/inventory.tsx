@@ -9,13 +9,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { db, auth } from '../config/firebase';
 import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 
+// Theme සහ Colors Import කිරීම
+import { useTheme } from '../constants/ThemeContext';
+import { Colors } from '../constants/Colors';
+
 const { width, height } = Dimensions.get('window');
 
 const Inventory = ({ route, navigation }: any) => {
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Dashboard එකෙන් එවන Category එක
+    // Global Theme එක ලබා ගැනීම
+    const { isDarkMode } = useTheme();
+    const theme = isDarkMode ? Colors.dark : Colors.light;
+
     const selectedCategory = route.params?.category || 'All';
 
     useEffect(() => {
@@ -63,23 +70,23 @@ const Inventory = ({ route, navigation }: any) => {
         return (
             <TouchableOpacity
                 activeOpacity={0.9}
-                style={styles.itemCard}
+                style={[styles.itemCard, { backgroundColor: theme.card, borderColor: isDarkMode ? '#333' : '#fff' }]}
                 onPress={() => navigation.navigate('EditItem', { itemId: item.id })}
             >
                 <View style={styles.itemImageContainer}>
                     {item.imageUri ? (
                         <Image source={{ uri: item.imageUri }} style={styles.itemImage} />
                     ) : (
-                        <View style={styles.placeholderImage}>
+                        <View style={[styles.placeholderImage, { backgroundColor: isDarkMode ? '#1D1F21' : '#F1F3F6' }]}>
                             <Ionicons name="fast-food-outline" size={30} color="#FF6B6B" />
                         </View>
                     )}
                 </View>
                 
                 <View style={styles.itemDetails}>
-                    <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-                    <View style={styles.badge}>
-                        <Text style={styles.itemCategory}>{item.category}</Text>
+                    <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
+                    <View style={[styles.badge, { backgroundColor: isDarkMode ? '#333' : '#F1F3F6' }]}>
+                        <Text style={[styles.itemCategory, { color: isDarkMode ? '#ADADAD' : '#636E72' }]}>{item.category}</Text>
                     </View>
                     <Text style={[styles.expiryText, { color: statusColor }]}>
                         <Ionicons name="time-outline" size={12} color={statusColor} /> 
@@ -95,17 +102,17 @@ const Inventory = ({ route, navigation }: any) => {
     };
 
     return (
-        <View style={styles.container}>
-            <StatusBar style="dark" />
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+            <StatusBar style={isDarkMode ? "light" : "dark"} />
             
             {/* Background Decor */}
-            <View style={styles.topCircle} />
-            <View style={styles.bottomCircle} />
+            <View style={[styles.topCircle, { backgroundColor: isDarkMode ? '#FF6B6B05' : '#FF6B6B15' }]} />
+            <View style={[styles.bottomCircle, { backgroundColor: isDarkMode ? '#FF6B6B03' : '#FF6B6B10' }]} />
 
             {/* Header Section */}
             <View style={styles.header}>
                 <View>
-                    <Text style={styles.title}>{selectedCategory} <Text style={{color: '#EE5253'}}>Pantry</Text></Text>
+                    <Text style={[styles.title, { color: theme.text }]}>{selectedCategory} <Text style={{color: '#EE5253'}}>Pantry</Text></Text>
                     <Text style={styles.subTitle}>{items.length} Items discovered</Text>
                 </View>
                 <View style={styles.headerIconContainer}>
@@ -128,7 +135,7 @@ const Inventory = ({ route, navigation }: any) => {
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
-                            <Ionicons name="basket-outline" size={100} color="#DDD" />
+                            <Ionicons name="basket-outline" size={100} color={isDarkMode ? "#333" : "#DDD"} />
                             <Text style={styles.emptyText}>Your pantry is empty!</Text>
                             <TouchableOpacity onPress={() => navigation.navigate('Add')} style={styles.addNowBtn}>
                                 <Text style={styles.addNowText}>Add Item Now</Text>
@@ -142,22 +149,14 @@ const Inventory = ({ route, navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F8F9FB' },
+    container: { flex: 1 },
     centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     
-    // Background Decorations
-    topCircle: { position: 'absolute', width: width * 1.3, height: width * 1.3, borderRadius: width * 0.65, backgroundColor: '#FF6B6B15', top: -height * 0.25, right: -width * 0.3 },
-    bottomCircle: { position: 'absolute', width: width * 1.1, height: width * 1.1, borderRadius: width * 0.55, backgroundColor: '#FF6B6B10', bottom: -height * 0.15, left: -width * 0.4 },
+    topCircle: { position: 'absolute', width: width * 1.3, height: width * 1.3, borderRadius: width * 0.65, top: -height * 0.25, right: -width * 0.3 },
+    bottomCircle: { position: 'absolute', width: width * 1.1, height: width * 1.1, borderRadius: width * 0.55, bottom: -height * 0.15, left: -width * 0.4 },
 
-    header: { 
-        paddingHorizontal: 25, 
-        paddingTop: 65, 
-        paddingBottom: 25, 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center' 
-    },
-    title: { fontSize: 30, fontWeight: '900', color: '#2D3436' },
+    header: { paddingHorizontal: 25, paddingTop: 65, paddingBottom: 25, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    title: { fontSize: 30, fontWeight: '900' },
     subTitle: { fontSize: 14, color: '#ADADAD', marginTop: 3, fontWeight: '500' },
     headerIconContainer: { elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
     headerBadge: { width: 45, height: 45, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
@@ -166,28 +165,23 @@ const styles = StyleSheet.create({
     
     itemCard: {
         flexDirection: 'row', 
-        backgroundColor: '#fff', 
         borderRadius: 25,
         padding: 15, 
         marginBottom: 18, 
         alignItems: 'center', 
         elevation: 8,
         shadowColor: '#000', 
-        shadowOpacity: 0.08, 
+        shadowOpacity: 0.1, 
         shadowRadius: 15,
         borderWidth: 1,
-        borderColor: '#fff'
     },
     itemImageContainer: { marginRight: 15 },
     itemImage: { width: 70, height: 70, borderRadius: 20 },
-    placeholderImage: { 
-        width: 70, height: 70, borderRadius: 20, 
-        backgroundColor: '#F1F3F6', justifyContent: 'center', alignItems: 'center' 
-    },
+    placeholderImage: { width: 70, height: 70, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
     itemDetails: { flex: 1 },
-    itemName: { fontSize: 18, fontWeight: 'bold', color: '#2D3436', marginBottom: 4 },
-    badge: { alignSelf: 'flex-start', backgroundColor: '#F1F3F6', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8, marginBottom: 5 },
-    itemCategory: { fontSize: 10, color: '#636E72', fontWeight: '800', textTransform: 'uppercase' },
+    itemName: { fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
+    badge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8, marginBottom: 5 },
+    itemCategory: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
     expiryText: { fontSize: 13, fontWeight: '700' },
     deleteBtn: { padding: 10 },
 
