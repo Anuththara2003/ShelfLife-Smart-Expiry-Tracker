@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
-// Screens Import කිරීම
+// Screens Import
 import LoginScreen from './app/LoginScreen';
 import SignUpScreen from './app/signup';
 import Dashboard from './app/dashboard';
@@ -13,12 +13,15 @@ import AddItem from './app/additem';
 import Profile from './app/profile';
 import EditItem from './app/edititem';
 
-// TypeScript සඳහා Routes ලැයිස්තුව
+// Theme Context සහ Colors Import කිරීම
+import { ThemeProvider, useTheme } from '../ShelfLife/constants/ThemeContext';
+import { Colors } from './constants/Colors';
+
 export type RootStackParamList = {
   Login: undefined;
   SignUp: undefined;
-  MainTabs: undefined; // Tab Navigator එකට යන පාර
-  EditItem: { itemId: string }; // Edit කරන්න යද්දී item id එක අරන් යනවා
+  MainTabs: undefined;
+  EditItem: { itemId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -26,6 +29,10 @@ const Tab = createBottomTabNavigator();
 
 // 1. යටින් තියෙන ටැබ් පද්ධතිය (Bottom Tabs)
 function MainTabs() {
+  // පොදු Theme එක මෙතනට ලබා ගැනීම
+  const { isDarkMode } = useTheme();
+  const theme = isDarkMode ? Colors.dark : Colors.light;
+
   return (
     <Tab.Navigator
       id="main-tabs"
@@ -33,7 +40,14 @@ function MainTabs() {
         headerShown: false,
         tabBarActiveTintColor: '#EE5253',
         tabBarInactiveTintColor: 'gray',
-        tabBarStyle: { height: 60, paddingBottom: 10 },
+        // මෙන්න මෙතන තමයි Footer එකේ පාට මාරු වෙන්නේ
+        tabBarStyle: { 
+          backgroundColor: theme.card, // Dark mode එකේදී කළු/තද අළු පාට වේ
+          height: 60, 
+          paddingBottom: 10,
+          borderTopWidth: isDarkMode ? 0 : 1, // Dark mode එකේදී උඩ ඉර අයින් කරයි
+          elevation: 10 
+        },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: any;
           if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
@@ -52,16 +66,18 @@ function MainTabs() {
   );
 }
 
-// 2. ප්‍රධාන Navigator එක
+// 2. ප්‍රධාන Navigator එක (ThemeProvider එකෙන් Wrap කර ඇත)
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator id="root" initialRouteName="Login" screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="SignUp" component={SignUpScreen} />
-        <Stack.Screen name="MainTabs" component={MainTabs} /> 
-        <Stack.Screen name="EditItem" component={EditItem} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <ThemeProvider>
+      <NavigationContainer>
+        <Stack.Navigator id="root" initialRouteName="Login" screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="SignUp" component={SignUpScreen} />
+          <Stack.Screen name="MainTabs" component={MainTabs} /> 
+          <Stack.Screen name="EditItem" component={EditItem} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ThemeProvider>
   );
 }
