@@ -11,7 +11,7 @@ const { width } = Dimensions.get('window');
 
 const Dashboard = ({ navigation }: any) => {
     const [userName, setUserName] = useState('User');
-    const [profileImage, setProfileImage] = useState<string | null>(null); //profile image state
+    const [profileImage, setProfileImage] = useState<string | null>(null);
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [expiringSoonCount, setExpiringSoonCount] = useState(0);
@@ -23,17 +23,15 @@ const Dashboard = ({ navigation }: any) => {
         const user = auth.currentUser;
         if (!user) return;
 
-        // 1. යූසර්ගේ දත්ත (Name & Profile Image) Live කියවීම
         const userDocRef = doc(db, "users", user.uid);
         const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 setUserName(data.fullName);
-                setProfileImage(data.profileImageUri || null); // pick profile image
+                setProfileImage(data.profileImageUri || null);
             }
         });
 
-        // 2. අයිතම Live කියවීම
         const q = query(collection(db, "items"), where("userId", "==", user.uid));
         const unsubscribeItems = onSnapshot(q, (querySnapshot) => {
             const itemsArray: any[] = [];
@@ -54,7 +52,6 @@ const Dashboard = ({ navigation }: any) => {
             setLoading(false);
         });
 
-        // අයින් වෙද්දී listeners දෙකම නතර කිරීම
         return () => {
             unsubscribeUser();
             unsubscribeItems();
@@ -81,11 +78,22 @@ const Dashboard = ({ navigation }: any) => {
                     </View>
 
                     <View style={styles.headerIcons}>
+                        {/* 1. අලුතින් එකතු කළ Notification Icon එක */}
+                        <TouchableOpacity 
+                            onPress={() => navigation.navigate('Notifications')}
+                            style={[styles.iconBtn, { backgroundColor: isDarkMode ? '#2D3436' : '#fff' }]}
+                        >
+                            <Ionicons name="notifications-outline" size={22} color={theme.text} />
+                            {/* නොටිෆිකේෂන් තියෙනවා නම් රතු තිතක් පෙන්වීම */}
+                            {expiringSoonCount > 0 && <View style={styles.notiBadge} />}
+                        </TouchableOpacity>
+
+                        {/* Theme Toggle Button */}
                         <TouchableOpacity onPress={toggleTheme} style={[styles.iconBtn, { backgroundColor: isDarkMode ? '#2D3436' : '#fff' }]}>
                             <Ionicons name={isDarkMode ? "sunny" : "moon"} size={22} color={isDarkMode ? "#FFCC00" : "#2D3436"} />
                         </TouchableOpacity>
 
-                        {/* මෙන්න මෙතන තමයි පින්තූරය පෙන්වන්නේ */}
+                        {/* Profile Image */}
                         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
                             {profileImage ? (
                                 <Image source={{ uri: profileImage }} style={styles.headerProfileImg} />
@@ -109,7 +117,7 @@ const Dashboard = ({ navigation }: any) => {
                     </View>
                 </LinearGradient>
 
-                {/* Expiring Soon */}
+                {/* Expiring Soon Section */}
                 <View style={styles.sectionHeader}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Expiring Soon</Text>
                     <TouchableOpacity onPress={() => navigation.navigate('Inventory', { category: 'All' })}>
@@ -174,12 +182,13 @@ const styles = StyleSheet.create({
     scrollContent: { paddingHorizontal: 25, paddingVertical: 60 },
     topCircle: { position: 'absolute', width: width * 1, height: width * 1, borderRadius: width * 0.5, top: -width * 0.4, right: -width * 0.2 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30, width: '100%' },
-    headerIcons: { flexDirection: 'row', alignItems: 'center', marginLeft: 10 },
-    iconBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 10, elevation: 4, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 5 },
+    headerIcons: { flexDirection: 'row', alignItems: 'center' },
+    iconBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 10, elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5, position: 'relative' },
     
-    // Header Profile පින්තූරය සඳහා Style
-    headerProfileImg: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#fff' },
+    // නොටිෆිකේෂන් Badge එක සඳහා Style
+    notiBadge: { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: '#EE5253', borderWidth: 1, borderColor: '#fff' },
 
+    headerProfileImg: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#fff' },
     greetText: { fontSize: 24, fontWeight: 'bold' },
     subGreet: { fontSize: 14, color: '#ADADAD' },
     summaryCard: { borderRadius: 25, padding: 25, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', elevation: 10, shadowColor: '#EE5253', shadowOpacity: 0.3, shadowRadius: 10 },
