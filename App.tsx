@@ -3,9 +3,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import FlashMessage from "react-native-flash-message"; // FlashMessage Import
+import FlashMessage from "react-native-flash-message";
 
 // Screens Import
+import WelcomeScreen from './app/Welcome'; 
 import LoginScreen from './app/LoginScreen';
 import SignUpScreen from './app/signup';
 import Dashboard from './app/dashboard';
@@ -16,12 +17,13 @@ import EditItem from './app/edititem';
 import SecuritySettings from './app/security'; 
 import Notifications from './app/notifications'; 
 
-// Theme Context සහ Colors Import කිරීම
+// Theme Context සහ Colors Import
 import { ThemeProvider, useTheme } from './constants/ThemeContext'; 
 import { Colors } from './constants/Colors';
 
 // TypeScript සඳහා Routes ලැයිස්තුව
 export type RootStackParamList = {
+  Welcome: undefined; // අලුතින් එක් කළා
   Login: undefined;
   SignUp: undefined;
   MainTabs: undefined; 
@@ -33,7 +35,6 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
-// 1. යටින් තියෙන ටැබ් පද්ධතිය (Bottom Tabs)
 function MainTabs() {
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? Colors.dark : Colors.light;
@@ -70,12 +71,13 @@ function MainTabs() {
   );
 }
 
-// 2. ප්‍රධාන Navigator එක
 export default function App() {
   return (
     <ThemeProvider>
       <NavigationContainer>
-        <Stack.Navigator id="root" initialRouteName="Login" screenOptions={{ headerShown: false }}>
+        {/* initialRouteName එක Welcome ලෙස වෙනස් කළා */}
+        <Stack.Navigator id="root" initialRouteName="Welcome" screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Welcome" component={WelcomeScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="SignUp" component={SignUpScreen} />
           <Stack.Screen name="MainTabs" component={MainTabs} /> 
@@ -85,7 +87,6 @@ export default function App() {
         </Stack.Navigator>
       </NavigationContainer>
 
-      {/* මෙන්න මෙතනයි FlashMessage එක තියෙන්න ඕනේ (Navigator එකෙන් එළියේ) */}
       <FlashMessage position="top" floating={true} /> 
       
     </ThemeProvider>
