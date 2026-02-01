@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { db, auth } from '../config/firebase';
 import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
+import { showMessage } from "react-native-flash-message"; // Flash Message Import
 
 // Theme සහ Colors Import කිරීම
 import { useTheme } from '../constants/ThemeContext';
@@ -19,7 +20,6 @@ const Inventory = ({ route, navigation }: any) => {
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Global Theme එක ලබා ගැනීම
     const { isDarkMode } = useTheme();
     const theme = isDarkMode ? Colors.dark : Colors.light;
 
@@ -49,12 +49,31 @@ const Inventory = ({ route, navigation }: any) => {
         return () => unsubscribe();
     }, [selectedCategory]);
 
-    const handleDelete = (id: string) => {
-        Alert.alert("Delete Item", "Are you sure you want to remove this item?", [
+    // Delete Function එක Flash Message සමඟ
+    const handleDelete = (id: string, itemName: string) => {
+        Alert.alert("Delete Item", `Are you sure you want to remove ${itemName}?`, [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Delete", style: "destructive", onPress: async () => {
-                    await deleteDoc(doc(db, "items", id));
+                    try {
+                        await deleteDoc(doc(db, "items", id));
+                        // සාර්ථක පණිවිඩය
+                        showMessage({
+                            message: "Item Removed",
+                            description: `${itemName} has been deleted from your pantry.`,
+                            type: "success",
+                            backgroundColor: "#EE5253", // ඔයාගේ Coral Red එක පාවිච්චි කළා
+                            icon: "success",
+                        });
+                    } catch (error: any) {
+                        showMessage({
+                            message: "Error",
+                            description: error.message,
+                            type: "danger",
+                            backgroundColor: "#EE5253",
+                            icon: "danger",
+                        });
+                    }
                 }
             }
         ]);
@@ -94,7 +113,8 @@ const Inventory = ({ route, navigation }: any) => {
                     </Text>
                 </View>
 
-                <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item.id)}>
+                {/* Delete Button එකේදී අයිතමයේ නමද ලබා දේ */}
+                <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item.id, item.name)}>
                     <Ionicons name="trash-outline" size={22} color="#EE5253" />
                 </TouchableOpacity>
             </TouchableOpacity>
@@ -105,11 +125,9 @@ const Inventory = ({ route, navigation }: any) => {
         <View style={[styles.container, { backgroundColor: theme.background }]}>
             <StatusBar style={isDarkMode ? "light" : "dark"} />
             
-            {/* Background Decor */}
             <View style={[styles.topCircle, { backgroundColor: isDarkMode ? '#FF6B6B05' : '#FF6B6B15' }]} />
             <View style={[styles.bottomCircle, { backgroundColor: isDarkMode ? '#FF6B6B03' : '#FF6B6B10' }]} />
 
-            {/* Header Section */}
             <View style={styles.header}>
                 <View>
                     <Text style={[styles.title, { color: theme.text }]}>{selectedCategory} <Text style={{color: '#EE5253'}}>Pantry</Text></Text>
@@ -151,30 +169,15 @@ const Inventory = ({ route, navigation }: any) => {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    
     topCircle: { position: 'absolute', width: width * 1.3, height: width * 1.3, borderRadius: width * 0.65, top: -height * 0.25, right: -width * 0.3 },
     bottomCircle: { position: 'absolute', width: width * 1.1, height: width * 1.1, borderRadius: width * 0.55, bottom: -height * 0.15, left: -width * 0.4 },
-
     header: { paddingHorizontal: 25, paddingTop: 65, paddingBottom: 25, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     title: { fontSize: 30, fontWeight: '900' },
     subTitle: { fontSize: 14, color: '#ADADAD', marginTop: 3, fontWeight: '500' },
     headerIconContainer: { elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
     headerBadge: { width: 45, height: 45, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
-
     listContent: { paddingHorizontal: 25, paddingBottom: 100 },
-    
-    itemCard: {
-        flexDirection: 'row', 
-        borderRadius: 25,
-        padding: 15, 
-        marginBottom: 18, 
-        alignItems: 'center', 
-        elevation: 8,
-        shadowColor: '#000', 
-        shadowOpacity: 0.1, 
-        shadowRadius: 15,
-        borderWidth: 1,
-    },
+    itemCard: { flexDirection: 'row', borderRadius: 25, padding: 15, marginBottom: 18, alignItems: 'center', elevation: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 15, borderWidth: 1 },
     itemImageContainer: { marginRight: 15 },
     itemImage: { width: 70, height: 70, borderRadius: 20 },
     placeholderImage: { width: 70, height: 70, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
@@ -184,7 +187,6 @@ const styles = StyleSheet.create({
     itemCategory: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
     expiryText: { fontSize: 13, fontWeight: '700' },
     deleteBtn: { padding: 10 },
-
     emptyContainer: { alignItems: 'center', marginTop: height * 0.15 },
     emptyText: { color: '#ADADAD', marginTop: 15, fontSize: 18, fontWeight: '600' },
     addNowBtn: { marginTop: 20 },

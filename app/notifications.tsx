@@ -7,8 +7,9 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../config/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { useTheme } from '../constants/ThemeContext';
+import { useTheme } from '../constants/ThemeContext'; 
 import { Colors } from '../constants/Colors';
+import { showMessage } from "react-native-flash-message"; 
 
 const { width, height } = Dimensions.get('window');
 
@@ -47,6 +48,15 @@ const Notifications = ({ navigation }: any) => {
       
       setAlerts(expiringItems);
       setLoading(false);
+    }, (error) => {
+        // දත්ත කියවීමේ දෝෂයක් ආවොත් Flash Message එකක් පෙන්වීම
+        showMessage({
+            message: "Data Error",
+            description: "Could not sync notifications: " + error.message,
+            type: "danger",
+            backgroundColor: "#EE5253",
+            icon: "danger",
+        });
     });
 
     return () => unsubscribe();
@@ -61,7 +71,7 @@ const Notifications = ({ navigation }: any) => {
       <TouchableOpacity 
         style={[styles.notiCard, { backgroundColor: theme.card }]}
         activeOpacity={0.8}
-        onPress={() => navigation.navigate('EditItem', { itemId: item.id })} // ක්ලික් කළ විට EditItem වෙත යයි
+        onPress={() => navigation.navigate('EditItem', { itemId: item.id })}
       >
         <View style={styles.iconContainer}>
           {item.imageUri ? (
@@ -127,27 +137,20 @@ const Notifications = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  
-  // Background Circles
   topCircle: { position: 'absolute', width: width * 1.3, height: width * 1.3, borderRadius: width * 0.65, top: -height * 0.25, right: -width * 0.3 },
   bottomCircle: { position: 'absolute', width: width * 1.1, height: width * 1.1, borderRadius: width * 0.55, bottom: -height * 0.15, left: -width * 0.4 },
-
   header: { paddingTop: 65, paddingHorizontal: 25, marginBottom: 20, flexDirection: 'row', alignItems: 'center' },
   backBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', elevation: 2, shadowOpacity: 0.1 },
   title: { fontSize: 32, fontWeight: '900', marginLeft: 15 },
-
   listPadding: { paddingHorizontal: 25, paddingBottom: 50 },
   notiCard: { flexDirection: 'row', padding: 15, borderRadius: 22, marginBottom: 15, alignItems: 'center', elevation: 4, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 },
-  
   iconContainer: { position: 'relative' },
   notiImg: { width: 55, height: 55, borderRadius: 15 },
   placeholderIcon: { width: 55, height: 55, borderRadius: 15, backgroundColor: '#FF6B6B10', justifyContent: 'center', alignItems: 'center' },
   badge: { position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: 6, backgroundColor: '#EE5253', borderWidth: 2, borderColor: '#fff' },
-
   textContainer: { flex: 1, marginLeft: 15, marginRight: 10 },
   notiTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
   notiDesc: { fontSize: 13, color: '#ADADAD', lineHeight: 18 },
-
   emptyContainer: { alignItems: 'center', marginTop: height * 0.2 },
   emptyText: { color: '#ADADAD', marginTop: 15, fontSize: 16, fontWeight: '500' }
 });

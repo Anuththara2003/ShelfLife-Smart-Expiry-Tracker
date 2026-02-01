@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { 
   View, Text, TextInput, TouchableOpacity, 
-  StyleSheet, ScrollView, Image, Alert, ActivityIndicator, Dimensions, KeyboardAvoidingView, Platform 
+  StyleSheet, ScrollView, Image, ActivityIndicator, Dimensions, KeyboardAvoidingView, Platform 
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { showMessage } from "react-native-flash-message"; // Flash message import කළා
 
 // Firebase සහ Theme Imports
 import { db, auth } from '../config/firebase';
@@ -45,8 +46,15 @@ const AddItem = ({ navigation }: any) => {
   };
 
   const handleSave = async () => {
+    // 1. දත්ත ඇතුළත් කර ඇත්දැයි බැලීම
     if (!name || !expiryDate) {
-      Alert.alert("Error", "Please enter item name and expiry date");
+      showMessage({
+        message: "Missing Details",
+        description: "Please enter the item name and select an expiry date.",
+        type: "danger",
+        backgroundColor: "#EE5253", // ඔයාගේ රතු පාට
+        icon: "warning",
+      });
       return;
     }
 
@@ -61,16 +69,32 @@ const AddItem = ({ navigation }: any) => {
         createdAt: new Date().toISOString()
       });
 
-      Alert.alert("Success", "Item added successfully!", [
-        { text: "OK", onPress: () => {
-          setName('');
-          setExpiryDate(null);
-          setImage(null);
-          navigation.navigate('Home'); 
-        }}
-      ]);
+      // 2. සාර්ථක පණිවිඩය (Success Message)
+      showMessage({
+        message: "Success!",
+        description: `${name} has been added to your pantry.`,
+        type: "success",
+        backgroundColor: "#4CAF50", // කොළ පාට
+        icon: "success",
+      });
+
+      // විස්තර Clear කර Home එකට යැවීම
+      setTimeout(() => {
+        setName('');
+        setExpiryDate(null);
+        setImage(null);
+        navigation.navigate('Home'); 
+      }, 1500); // තත්පර 1.5 කට පසු navigate වේ
+
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      // 3. Error පණිවිඩය
+      showMessage({
+        message: "Error",
+        description: error.message,
+        type: "danger",
+        backgroundColor: "#EE5253",
+        icon: "danger",
+      });
     } finally {
       setLoading(false);
     }
@@ -80,14 +104,13 @@ const AddItem = ({ navigation }: any) => {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
       
-      {/* Background Decor (Matching Edit/Login) */}
+      {/* Background Decor */}
       <View style={[styles.topCircle, { backgroundColor: isDarkMode ? '#FF6B6B08' : '#FF6B6B15' }]} />
       <View style={[styles.bottomCircle, { backgroundColor: isDarkMode ? '#FF6B6B05' : '#FF6B6B10' }]} />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           
-          {/* Header (Like Edit Item) */}
           <View style={styles.customHeader}>
             <Text style={[styles.headerTitle, { color: theme.text }]}>Add New <Text style={{color: '#EE5253'}}>Item</Text></Text>
           </View>
@@ -176,33 +199,23 @@ const AddItem = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { paddingHorizontal: 30, paddingVertical: 50 },
-  
-  // Background Circles
   topCircle: { position: 'absolute', width: width * 1.3, height: width * 1.3, borderRadius: width * 0.65, top: -height * 0.25, right: -width * 0.3 },
   bottomCircle: { position: 'absolute', width: width * 1.1, height: width * 1.1, borderRadius: width * 0.55, bottom: -height * 0.15, left: -width * 0.4 },
-
-  // Header
   customHeader: { marginBottom: 30 },
   headerTitle: { fontSize: 32, fontWeight: '900' },
-
-  // Card
   card: { borderRadius: 30, padding: 25, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 12 },
-  
   imagePicker: { width: '100%', height: 160, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 25, borderStyle: 'dashed', borderWidth: 1 },
   selectedImage: { width: '100%', height: '100%', borderRadius: 20 },
   imagePlaceholder: { alignItems: 'center' },
   imageText: { color: '#FF6B6B', marginTop: 5, fontWeight: 'bold' },
-
   label: { fontSize: 14, fontWeight: 'bold', marginBottom: 8, marginLeft: 5 },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', borderRadius: 15, marginBottom: 20, paddingHorizontal: 15, height: 55 },
   input: { flex: 1, marginLeft: 10, fontSize: 16 },
-
   categoryContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 25 },
   catBtn: { paddingVertical: 10, borderRadius: 12, marginBottom: 10, width: '23%', alignItems: 'center' },
   catBtnActive: { backgroundColor: '#FF6B6B' },
   catText: { fontSize: 11, fontWeight: 'bold' },
   catTextActive: { color: '#fff' },
-
   submitBtnShadow: { marginTop: 10, shadowColor: '#EE5253', shadowOpacity: 0.4, shadowRadius: 15, elevation: 10 },
   submitBtn: { height: 55, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
   submitBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }

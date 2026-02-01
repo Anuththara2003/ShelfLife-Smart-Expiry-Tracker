@@ -3,9 +3,10 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Activ
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { db, auth } from '../config/firebase';
-import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { Colors } from '../constants/Colors'; 
 import { useTheme } from '../constants/ThemeContext'; 
+import { showMessage } from "react-native-flash-message"; // Flash message import කළා
 
 const { width } = Dimensions.get('window');
 
@@ -23,6 +24,7 @@ const Dashboard = ({ navigation }: any) => {
         const user = auth.currentUser;
         if (!user) return;
 
+        // 1. User ගේ නම සහ පින්තූරය Live කියවීම
         const userDocRef = doc(db, "users", user.uid);
         const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) {
@@ -30,8 +32,18 @@ const Dashboard = ({ navigation }: any) => {
                 setUserName(data.fullName);
                 setProfileImage(data.profileImageUri || null);
             }
+        }, (error) => {
+            // Error එකක් ආවොත් ලස්සන Flash Message එකක් පෙන්වීම
+            showMessage({
+                message: "Error fetching user data",
+                description: error.message,
+                type: "danger",
+                backgroundColor: "#EE5253",
+                icon: "danger",
+            });
         });
 
+        // 2. අයිතම Live කියවීම
         const q = query(collection(db, "items"), where("userId", "==", user.uid));
         const unsubscribeItems = onSnapshot(q, (querySnapshot) => {
             const itemsArray: any[] = [];
@@ -50,6 +62,14 @@ const Dashboard = ({ navigation }: any) => {
             setItems(itemsArray);
             setExpiringSoonCount(expiringCount);
             setLoading(false);
+        }, (error) => {
+            showMessage({
+                message: "Error fetching pantry items",
+                description: error.message,
+                type: "danger",
+                backgroundColor: "#EE5253",
+                icon: "danger",
+            });
         });
 
         return () => {
@@ -78,13 +98,12 @@ const Dashboard = ({ navigation }: any) => {
                     </View>
 
                     <View style={styles.headerIcons}>
-                        {/* 1. අලුතින් එකතු කළ Notification Icon එක */}
+                        {/* Notification Icon */}
                         <TouchableOpacity 
                             onPress={() => navigation.navigate('Notifications')}
                             style={[styles.iconBtn, { backgroundColor: isDarkMode ? '#2D3436' : '#fff' }]}
                         >
                             <Ionicons name="notifications-outline" size={22} color={theme.text} />
-                            {/* නොටිෆිකේෂන් තියෙනවා නම් රතු තිතක් පෙන්වීම */}
                             {expiringSoonCount > 0 && <View style={styles.notiBadge} />}
                         </TouchableOpacity>
 
@@ -155,7 +174,7 @@ const Dashboard = ({ navigation }: any) => {
                     )}
                 </ScrollView>
 
-                {/* Categories */}
+                {/* Categories Section */}
                 <Text style={[styles.sectionTitle, { color: theme.text }]}>Categories</Text>
                 <View style={styles.categoryGrid}>
                     {['Food', 'Medicine', 'Dairy', 'Other'].map((cat) => (
@@ -184,10 +203,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30, width: '100%' },
     headerIcons: { flexDirection: 'row', alignItems: 'center' },
     iconBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 10, elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5, position: 'relative' },
-    
-    // නොටිෆිකේෂන් Badge එක සඳහා Style
     notiBadge: { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: '#EE5253', borderWidth: 1, borderColor: '#fff' },
-
     headerProfileImg: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#fff' },
     greetText: { fontSize: 24, fontWeight: 'bold' },
     subGreet: { fontSize: 14, color: '#ADADAD' },

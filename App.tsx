@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import FlashMessage from "react-native-flash-message"; // FlashMessage Import
 
 // Screens Import
 import LoginScreen from './app/LoginScreen';
@@ -19,7 +20,7 @@ import Notifications from './app/notifications';
 import { ThemeProvider, useTheme } from './constants/ThemeContext'; 
 import { Colors } from './constants/Colors';
 
-// TypeScript සඳහා Routes ලැයිස්තුව Update කරන ලදී
+// TypeScript සඳහා Routes ලැයිස්තුව
 export type RootStackParamList = {
   Login: undefined;
   SignUp: undefined;
@@ -81,9 +82,12 @@ export default function App() {
           <Stack.Screen name="EditItem" component={EditItem} />
           <Stack.Screen name="Security" component={SecuritySettings} />
           <Stack.Screen name="Notifications" component={Notifications} />
-          
         </Stack.Navigator>
       </NavigationContainer>
+
+      {/* මෙන්න මෙතනයි FlashMessage එක තියෙන්න ඕනේ (Navigator එකෙන් එළියේ) */}
+      <FlashMessage position="top" floating={true} /> 
+      
     </ThemeProvider>
   );
 }

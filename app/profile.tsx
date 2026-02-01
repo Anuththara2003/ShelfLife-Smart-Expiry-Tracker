@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import { showMessage } from "react-native-flash-message"; // Flash Message Import
 
 // Firebase සහ Theme Imports
 import { auth, db } from '../config/firebase';
@@ -28,7 +29,6 @@ const Profile = ({ navigation }: any) => {
     const user = auth.currentUser;
     if (!user) return;
 
-    // 1. User ගේ දත්ත සහ පින්තූරය Live කියවීම (real-time update)
     const userDocRef = doc(db, "users", user.uid);
     const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -38,7 +38,6 @@ const Profile = ({ navigation }: any) => {
       }
     });
 
-    // 2. අයිතම ගණන කියවීම
     const fetchItemCount = async () => {
         const q = query(collection(db, "items"), where("userId", "==", user.uid));
         const querySnapshot = await getDocs(q);
@@ -64,9 +63,22 @@ const Profile = ({ navigation }: any) => {
         const user = auth.currentUser;
         if (user) {
           await updateDoc(doc(db, "users", user.uid), { profileImageUri: uri });
+          // පින්තූරය මාරු වූ පසු පණිවිඩය
+          showMessage({
+            message: "Success",
+            description: "Profile picture updated successfully!",
+            type: "success",
+            backgroundColor: "#4CAF50",
+            icon: "success",
+          });
         }
       } catch (error) {
-        console.log("Error updating image:", error);
+        showMessage({
+          message: "Update Failed",
+          description: "Could not save profile picture.",
+          type: "danger",
+          backgroundColor: "#EE5253",
+        });
       }
     }
   };
@@ -76,6 +88,14 @@ const Profile = ({ navigation }: any) => {
       { text: "Cancel", style: "cancel" },
       { text: "Logout", style: "destructive", onPress: async () => {
         await auth.signOut();
+        // Logout වූ පසු පණිවිඩය
+        showMessage({
+          message: "Signed Out",
+          description: "Come back soon!",
+          type: "info",
+          backgroundColor: "#2D3436",
+          icon: "info",
+        });
         navigation.replace('Login');
       }}
     ]);
@@ -84,79 +104,45 @@ const Profile = ({ navigation }: any) => {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
-      
       <View style={[styles.topCircle, { backgroundColor: isDarkMode ? '#FF6B6B08' : '#FF6B6B15' }]} />
       <View style={[styles.bottomCircle, { backgroundColor: isDarkMode ? '#FF6B6B05' : '#FF6B6B10' }]} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>My <Text style={{color: '#EE5253'}}>Profile</Text></Text>
-        </View>
+        <View style={styles.header}><Text style={[styles.headerTitle, { color: theme.text }]}>My <Text style={{color: '#EE5253'}}>Profile</Text></Text></View>
 
-        {/* Profile Card */}
         <View style={[styles.profileCard, { backgroundColor: theme.card }]}>
           <TouchableOpacity style={styles.avatarWrapper} onPress={pickProfileImage}>
             <LinearGradient colors={['#FF6B6B', '#EE5253']} style={styles.avatarGradient}>
-              {profileImage ? (
-                <Image source={{ uri: profileImage }} style={styles.profileImg} />
-              ) : (
-                <Ionicons name="person" size={50} color="#fff" />
-              )}
+              {profileImage ? <Image source={{ uri: profileImage }} style={styles.profileImg} /> : <Ionicons name="person" size={50} color="#fff" />}
             </LinearGradient>
-            <View style={styles.cameraIconBadge}>
-              <Ionicons name="camera" size={16} color="#fff" />
-            </View>
+            <View style={styles.cameraIconBadge}><Ionicons name="camera" size={16} color="#fff" /></View>
           </TouchableOpacity>
-          
           <Text style={[styles.userName, { color: theme.text }]}>{userData?.fullName || "User"}</Text>
           <Text style={styles.userEmail}>{auth.currentUser?.email}</Text>
-
           <View style={styles.statsContainer}>
-            <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: '#EE5253' }]}>{itemCount}</Text>
-              <Text style={[styles.statLabel, { color: theme.text }]}>Items</Text>
-            </View>
+            <View style={styles.statBox}><Text style={[styles.statNumber, { color: '#EE5253' }]}>{itemCount}</Text><Text style={[styles.statLabel, { color: theme.text }]}>Items</Text></View>
             <View style={[styles.divider, { backgroundColor: isDarkMode ? '#333' : '#EEE' }]} />
-            <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: '#4CAF50' }]}>Active</Text>
-              <Text style={[styles.statLabel, { color: theme.text }]}>Account</Text>
-            </View>
+            <View style={styles.statBox}><Text style={[styles.statNumber, { color: '#4CAF50' }]}>Active</Text><Text style={[styles.statLabel, { color: theme.text }]}>Account</Text></View>
           </View>
         </View>
 
-        {/* Menu Options - Navigation එක මෙතන තියෙන්නේ */}
         <View style={styles.menuContainer}>
-          <TouchableOpacity 
-            style={[styles.menuItem, { backgroundColor: theme.card }]}
-            onPress={() => navigation.navigate('Notifications')} // Navigation මෙතනට
-          >
-            <View style={[styles.iconCircle, {backgroundColor: '#FF6B6B20'}]}>
-               <Ionicons name="notifications" size={20} color="#EE5253" />
-            </View>
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.card }]} onPress={() => navigation.navigate('Notifications')}>
+            <View style={[styles.iconCircle, {backgroundColor: '#FF6B6B20'}]}><Ionicons name="notifications" size={20} color="#EE5253" /></View>
             <Text style={[styles.menuText, { color: theme.text }]}>Notifications</Text>
             <Ionicons name="chevron-forward" size={18} color="#DDD" />
           </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.menuItem, { backgroundColor: theme.card }]}
-            onPress={() => navigation.navigate('Security')} // Navigation මෙතනට
-          >
-            <View style={[styles.iconCircle, {backgroundColor: '#4CAF5020'}]}>
-               <Ionicons name="shield-checkmark" size={20} color="#4CAF50" />
-            </View>
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.card }]} onPress={() => navigation.navigate('Security')}>
+            <View style={[styles.iconCircle, {backgroundColor: '#4CAF5020'}]}><Ionicons name="shield-checkmark" size={20} color="#4CAF50" /></View>
             <Text style={[styles.menuText, { color: theme.text }]}>Privacy & Security</Text>
             <Ionicons name="chevron-forward" size={18} color="#DDD" />
           </TouchableOpacity>
-
           <TouchableOpacity style={styles.logoutBtnShadow} onPress={handleLogout}>
             <LinearGradient colors={['#FF6B6B', '#EE5253']} style={styles.logoutBtn} start={{x: 0, y: 0}} end={{x: 1, y: 0}}>
-              <Ionicons name="log-out" size={22} color="#fff" style={{ marginRight: 10 }} />
-              <Text style={styles.logoutText}>Sign Out</Text>
+              <Ionicons name="log-out" size={22} color="#fff" style={{ marginRight: 10 }} /><Text style={styles.logoutText}>Sign Out</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
-
       </ScrollView>
     </View>
   );

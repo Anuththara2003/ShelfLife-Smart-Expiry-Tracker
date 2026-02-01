@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { 
   View, Text, TextInput, TouchableOpacity, 
   StyleSheet, KeyboardAvoidingView, Platform, 
-  Dimensions, Alert, ActivityIndicator 
+  Dimensions, ActivityIndicator 
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-// Firebase Imports
+// Firebase සහ Flash Message Imports
 import { auth } from '../config/firebase'; 
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { showMessage } from "react-native-flash-message"; // අලුතින් එක් කළා
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,18 +21,43 @@ const LoginScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const handleLogin = async () => {
+    // 1. Validation (දත්ත ඇතුළත් කර ඇත්දැයි බැලීම)
     if (email === '' || password === '') {
-      Alert.alert("Error", "Please enter both email and password");
+      showMessage({
+        message: "Missing Credentials",
+        description: "Please enter both email and password to login.",
+        type: "danger",
+        backgroundColor: "#EE5253", // ඔයාගේ Coral Red පාට
+        icon: "warning",
+      });
       return;
     }
 
     setLoading(true);
     try {
+      // Firebase Login
       await signInWithEmailAndPassword(auth, email, password);
-      // ලොග් වුණාම Dashboard එකට යන්න
+      
+      // සාර්ථක පණිවිඩය (Redirect වීමට පෙර තත්පරයකට පෙන්වයි)
+      showMessage({
+        message: "Welcome Back!",
+        description: "Login successful.",
+        type: "success",
+        backgroundColor: "#4CAF50",
+        icon: "success",
+      });
+
       navigation.replace('MainTabs'); 
+
     } catch (error: any) {
-      Alert.alert("Login Failed", "Invalid email or password");
+      // Login අසාර්ථක වුවහොත්
+      showMessage({
+        message: "Login Failed",
+        description: "Invalid email or password. Please try again.",
+        type: "danger",
+        backgroundColor: "#EE5253",
+        icon: "danger",
+      });
     } finally {
       setLoading(false);
     }
@@ -56,6 +82,7 @@ const LoginScreen = ({ navigation }: any) => {
           <Text style={styles.welcomeText}>Welcome Back!</Text>
           <Text style={styles.instructionText}>Log in to manage your pantry</Text>
 
+          {/* Email Input */}
           <View style={styles.inputWrapper}>
             <Ionicons name="mail-outline" size={20} color="#999" />
             <TextInput 
@@ -68,6 +95,7 @@ const LoginScreen = ({ navigation }: any) => {
             />
           </View>
 
+          {/* Password Input */}
           <View style={styles.inputWrapper}>
             <Ionicons name="lock-closed-outline" size={20} color="#999" />
             <TextInput 
@@ -79,12 +107,12 @@ const LoginScreen = ({ navigation }: any) => {
             />
           </View>
 
-          {/* Login Button - මෙන්න මෙතන තමයි වෙනස් කළේ */}
+          {/* Login Button */}
           <TouchableOpacity 
             activeOpacity={0.8} 
             style={styles.buttonShadow}
             onPress={handleLogin} 
-            disabled={loading}    // diasable button while loading
+            disabled={loading}
           >
             <LinearGradient
               colors={['#FF6B6B', '#EE5253']} 
@@ -93,7 +121,7 @@ const LoginScreen = ({ navigation }: any) => {
               end={{x: 1, y: 0}}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" /> // circular loading spinner
+                <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.loginButtonText}>Login</Text>
               )}

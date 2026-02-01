@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   View, Text, TextInput, TouchableOpacity, 
   StyleSheet, KeyboardAvoidingView, Platform, 
-  Dimensions, ScrollView, Image, Alert, ActivityIndicator 
+  Dimensions, ScrollView, Image, ActivityIndicator 
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { showMessage } from "react-native-flash-message"; // Flash Message Import
 
 // Firebase සහ Theme Imports
 import { db } from '../config/firebase';
@@ -29,7 +30,6 @@ const EditItem = ({ route, navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
-  // Global Theme එක ලබා ගැනීම
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
@@ -46,8 +46,14 @@ const EditItem = ({ route, navigation }: any) => {
           setExpiryDate(new Date(data.expiryDate));
           setImage(data.imageUri);
         }
-      } catch (error) {
-        Alert.alert("Error", "Could not load data");
+      } catch (error: any) {
+        showMessage({
+          message: "Error Loading Data",
+          description: error.message,
+          type: "danger",
+          backgroundColor: "#EE5253",
+          icon: "danger",
+        });
       } finally {
         setLoading(false);
       }
@@ -67,9 +73,16 @@ const EditItem = ({ route, navigation }: any) => {
 
   const handleUpdate = async () => {
     if (!name || !expiryDate) {
-      Alert.alert("Error", "Please fill all fields");
+      showMessage({
+        message: "Missing Information",
+        description: "Please fill all fields before updating.",
+        type: "danger",
+        backgroundColor: "#EE5253",
+        icon: "warning",
+      });
       return;
     }
+
     setUpdating(true);
     try {
       const docRef = doc(db, "items", itemId);
@@ -79,9 +92,29 @@ const EditItem = ({ route, navigation }: any) => {
         expiryDate: expiryDate.toISOString(),
         imageUri: image,
       });
-      Alert.alert("Success", "Item updated successfully!", [{ text: "OK", onPress: () => navigation.goBack() }]);
+
+      // සාර්ථක පණිවිඩය
+      showMessage({
+        message: "Updated Successfully!",
+        description: `${name} has been updated.`,
+        type: "success",
+        backgroundColor: "#4CAF50",
+        icon: "success",
+      });
+
+      // තත්පර 1.5 කට පසු ආපසු යෑම
+      setTimeout(() => {
+        navigation.goBack();
+      }, 1500);
+
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      showMessage({
+        message: "Update Failed",
+        description: error.message,
+        type: "danger",
+        backgroundColor: "#EE5253",
+        icon: "danger",
+      });
     } finally {
       setUpdating(false);
     }
@@ -103,10 +136,9 @@ const EditItem = ({ route, navigation }: any) => {
       <View style={[styles.topCircle, { backgroundColor: isDarkMode ? '#FF6B6B08' : '#FF6B6B15' }]} />
       <View style={[styles.bottomCircle, { backgroundColor: isDarkMode ? '#FF6B6B05' : '#FF6B6B10' }]} />
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.innerContainer}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           
-          {/* Custom Header with Back Button */}
           <View style={styles.customHeader}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backCircle, { backgroundColor: isDarkMode ? '#333' : '#fff' }]}>
               <Ionicons name="arrow-back" size={24} color={theme.text} />
@@ -191,36 +223,25 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   innerContainer: { flex: 1 },
   scrollContent: { paddingHorizontal: 30, paddingVertical: 50 },
-  
-  // Background Decorations
   topCircle: { position: 'absolute', width: width * 1.3, height: width * 1.3, borderRadius: width * 0.65, top: -height * 0.25, right: -width * 0.3 },
   bottomCircle: { position: 'absolute', width: width * 1.1, height: width * 1.1, borderRadius: width * 0.55, bottom: -height * 0.15, left: -width * 0.4 },
-
-  // Header
   customHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
   backCircle: { width: 45, height: 45, borderRadius: 23, justifyContent: 'center', alignItems: 'center', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5 },
   headerTitle: { fontSize: 28, fontWeight: '900', marginLeft: 20 },
-
-  // Card
   card: { borderRadius: 30, padding: 25, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 30, elevation: 12 },
-  
   imagePicker: { width: '100%', height: 160, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 25, borderStyle: 'dashed', borderWidth: 1 },
   selectedImage: { width: '100%', height: '100%', borderRadius: 20 },
   imagePlaceholder: { alignItems: 'center' },
   imageText: { color: '#FF6B6B', marginTop: 5, fontWeight: 'bold' },
-
   label: { fontSize: 14, fontWeight: 'bold', marginBottom: 8, marginLeft: 5 },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', borderRadius: 15, marginBottom: 20, paddingHorizontal: 15, height: 55 },
   input: { flex: 1, marginLeft: 10, fontSize: 16 },
   dateText: { marginLeft: 10, fontSize: 16 },
-
   categoryContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 25 },
   catBtn: { paddingVertical: 10, borderRadius: 12, marginBottom: 10, width: '23%', alignItems: 'center' },
   catBtnActive: { backgroundColor: '#FF6B6B' },
   catText: { fontSize: 11, fontWeight: 'bold' },
   catTextActive: { color: '#fff' },
-
-  // Button Style
   buttonShadow: { marginTop: 10, shadowColor: '#EE5253', shadowOpacity: 0.4, shadowRadius: 15, elevation: 10 },
   updateButton: { height: 55, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
   updateButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }

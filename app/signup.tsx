@@ -8,14 +8,14 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-
-import { auth,db} from '../config/firebase';
+// Firebase සහ Flash Message Imports
+import { auth, db } from '../config/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { Alert, ActivityIndicator } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 import { doc, setDoc } from 'firebase/firestore';
+import { showMessage } from "react-native-flash-message"; // අලුතින් එක් කළා
 
 const { width, height } = Dimensions.get('window');
-
 
 const SignUpScreen = ({ navigation }: any) => {
   const [name, setName] = useState<string>('');
@@ -25,37 +25,68 @@ const SignUpScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState<boolean>(false);
 
   // Register Logic
-
   const handleSignUp = async () => {
-  if (email === '' || password === '' || name === '') {
-    Alert.alert("Error", "Please fill all fields");
-    return;
-  }
+    // 1. Validation (දත්ත නිවැරදිදැයි බැලීම)
+    if (email === '' || password === '' || name === '') {
+      showMessage({
+        message: "Missing Information",
+        description: "Please fill all fields to create an account.",
+        type: "danger",
+        backgroundColor: "#EE5253", // ඔයාගේ Coral Red පාට
+        icon: "warning",
+      });
+      return;
+    }
 
-  setLoading(true);
-  try {
-    // 1. Firebase Auth එකේ User කෙනෙක් හදනවා
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+    if (password !== confirmPassword) {
+      showMessage({
+        message: "Password Mismatch",
+        description: "Passwords do not match. Please check again.",
+        type: "danger",
+        backgroundColor: "#EE5253",
+        icon: "danger",
+      });
+      return;
+    }
 
-    // 2. ඒ ලැබුණු User ID එක පාවිච්චි කරලා "users" collection එකේ දත්ත Save කරනවා
-    await setDoc(doc(db, "users", user.uid), {
-      fullName: name,
-      email: email,
-      uid: user.uid,
-      createdAt: new Date().toISOString()
-    });
+    setLoading(true);
+    try {
+      // Firebase Auth හරහා User කෙනෙක් හදනවා
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-    Alert.alert("Success", "Account created successfully!", [
-      { text: "OK", onPress: () => navigation.navigate('Login') }
-    ]);
+      // Firestore හි User දත්ත Save කරනවා
+      await setDoc(doc(db, "users", user.uid), {
+        fullName: name,
+        email: email,
+        uid: user.uid,
+        createdAt: new Date().toISOString()
+      });
 
-  } catch (error: any) {
-    Alert.alert("Error", error.message);
-  } finally {
-    setLoading(false);
-  }
-};
+      // සාර්ථක පණිවිඩය (Success Message)
+      showMessage({
+        message: "Success!",
+        description: "Account created successfully! You can now login.",
+        type: "success",
+        backgroundColor: "#4CAF50", // කොළ පාට
+        icon: "success",
+      });
+
+      navigation.navigate('Login');
+
+    } catch (error: any) {
+      // වැරැද්දක් වුණොත් පෙන්වන පණිවිඩය
+      showMessage({
+        message: "Registration Failed",
+        description: error.message,
+        type: "danger",
+        backgroundColor: "#EE5253",
+        icon: "danger",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -98,11 +129,11 @@ const SignUpScreen = ({ navigation }: any) => {
               activeOpacity={0.8}
               style={styles.buttonShadow}
               onPress={handleSignUp} 
-              disabled={loading}     //disable button while loading
+              disabled={loading}
             >
               <LinearGradient colors={['#FF6B6B', '#EE5253']} style={styles.signUpButton} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 {loading ? (
-                  <ActivityIndicator color="#fff" /> // loading spinner
+                  <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={styles.signUpButtonText}>Sign Up</Text>
                 )}
@@ -112,8 +143,6 @@ const SignUpScreen = ({ navigation }: any) => {
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>
-            
-            {/* මෙන්න මෙතන navigation navigate එක එකතු කළා */}
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
               <Text style={styles.signInText}>Login</Text>
             </TouchableOpacity>
@@ -123,7 +152,6 @@ const SignUpScreen = ({ navigation }: any) => {
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FB' },
