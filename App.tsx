@@ -13,7 +13,7 @@ import AddItem from './app/additem';
 import Profile from './app/profile';
 import EditItem from './app/edititem';
 import SecuritySettings from './app/security'; 
-//import Notifications from './app/notifications'; 
+import Notifications from './app/notifications'; 
 
 // Theme Context සහ Colors Import කිරීම
 import { ThemeProvider, useTheme } from './constants/ThemeContext'; 
@@ -79,10 +79,8 @@ export default function App() {
           <Stack.Screen name="SignUp" component={SignUpScreen} />
           <Stack.Screen name="MainTabs" component={MainTabs} /> 
           <Stack.Screen name="EditItem" component={EditItem} />
-          
-          {/* අලුත් පිටු දෙක මෙතනට Register කළා */}
           <Stack.Screen name="Security" component={SecuritySettings} />
-          {/* <Stack.Screen name="Notifications" component={Notifications} /> */}
+          <Stack.Screen name="Notifications" component={Notifications} />
           
         </Stack.Navigator>
       </NavigationContainer>
