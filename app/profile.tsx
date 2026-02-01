@@ -10,8 +10,8 @@ import * as ImagePicker from 'expo-image-picker';
 
 // Firebase සහ Theme Imports
 import { auth, db } from '../config/firebase';
-import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
-import { useTheme } from '../constants/ThemeContext';
+import { doc, getDoc, collection, query, where, onSnapshot, getDocs, updateDoc } from 'firebase/firestore';
+import { useTheme } from '../constants/ThemeContext'; 
 import { Colors } from '../constants/Colors';
 
 const { width, height } = Dimensions.get('window');
@@ -20,33 +20,35 @@ const Profile = ({ navigation }: any) => {
   const [userData, setUserData] = useState<any>(null);
   const [itemCount, setItemCount] = useState(0);
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
   
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        // 1. User ගේ දත්ත සහ පින්තූරය කියවීම
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setUserData(data);
-          if (data.profileImageUri) setProfileImage(data.profileImageUri);
-        }
+    const user = auth.currentUser;
+    if (!user) return;
 
-        // 2. බඩු ප්‍රමාණය ගණනය කිරීම
+    // 1. User ගේ දත්ත සහ පින්තූරය Live කියවීම (real-time update)
+    const userDocRef = doc(db, "users", user.uid);
+    const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setUserData(data);
+        if (data.profileImageUri) setProfileImage(data.profileImageUri);
+      }
+    });
+
+    // 2. අයිතම ගණන කියවීම
+    const fetchItemCount = async () => {
         const q = query(collection(db, "items"), where("userId", "==", user.uid));
         const querySnapshot = await getDocs(q);
         setItemCount(querySnapshot.size);
-      }
     };
-    fetchUserData();
+    fetchItemCount();
+
+    return () => unsubscribeUser();
   }, []);
 
-  // Profile පින්තූරය තෝරාගැනීම සහ Save කිරීම
   const pickProfileImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -58,17 +60,13 @@ const Profile = ({ navigation }: any) => {
     if (!result.canceled) {
       const uri = result.assets[0].uri;
       setProfileImage(uri);
-      
-      // Database එකේ Save කිරීම
       try {
         const user = auth.currentUser;
         if (user) {
-          await updateDoc(doc(db, "users", user.uid), {
-            profileImageUri: uri
-          });
+          await updateDoc(doc(db, "users", user.uid), { profileImageUri: uri });
         }
       } catch (error) {
-        console.log("Error updating profile image:", error);
+        console.log("Error updating image:", error);
       }
     }
   };
@@ -96,10 +94,8 @@ const Profile = ({ navigation }: any) => {
           <Text style={[styles.headerTitle, { color: theme.text }]}>My <Text style={{color: '#EE5253'}}>Profile</Text></Text>
         </View>
 
-        {/* Profile Info Card */}
+        {/* Profile Card */}
         <View style={[styles.profileCard, { backgroundColor: theme.card }]}>
-          
-          {/* පින්තූරය සහිත Avatar කොටස */}
           <TouchableOpacity style={styles.avatarWrapper} onPress={pickProfileImage}>
             <LinearGradient colors={['#FF6B6B', '#EE5253']} style={styles.avatarGradient}>
               {profileImage ? (
@@ -129,9 +125,12 @@ const Profile = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Menu Options */}
+        {/* Menu Options - Navigation එක මෙතන තියෙන්නේ */}
         <View style={styles.menuContainer}>
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.card }]}>
+          <TouchableOpacity 
+            style={[styles.menuItem, { backgroundColor: theme.card }]}
+            onPress={() => navigation.navigate('Notifications')} // Navigation මෙතනට
+          >
             <View style={[styles.iconCircle, {backgroundColor: '#FF6B6B20'}]}>
                <Ionicons name="notifications" size={20} color="#EE5253" />
             </View>
@@ -139,7 +138,10 @@ const Profile = ({ navigation }: any) => {
             <Ionicons name="chevron-forward" size={18} color="#DDD" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.card }]}>
+          <TouchableOpacity 
+            style={[styles.menuItem, { backgroundColor: theme.card }]}
+            onPress={() => navigation.navigate('Security')} // Navigation මෙතනට
+          >
             <View style={[styles.iconCircle, {backgroundColor: '#4CAF5020'}]}>
                <Ionicons name="shield-checkmark" size={20} color="#4CAF50" />
             </View>
@@ -147,7 +149,6 @@ const Profile = ({ navigation }: any) => {
             <Ionicons name="chevron-forward" size={18} color="#DDD" />
           </TouchableOpacity>
 
-          {/* Logout */}
           <TouchableOpacity style={styles.logoutBtnShadow} onPress={handleLogout}>
             <LinearGradient colors={['#FF6B6B', '#EE5253']} style={styles.logoutBtn} start={{x: 0, y: 0}} end={{x: 1, y: 0}}>
               <Ionicons name="log-out" size={22} color="#fff" style={{ marginRight: 10 }} />
@@ -166,30 +167,24 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 25, paddingVertical: 60 },
   topCircle: { position: 'absolute', width: width * 1.3, height: width * 1.3, borderRadius: width * 0.65, top: -height * 0.25, right: -width * 0.3 },
   bottomCircle: { position: 'absolute', width: width * 1.1, height: width * 1.1, borderRadius: width * 0.55, bottom: -height * 0.15, left: -width * 0.4 },
-
   header: { marginBottom: 30 },
   headerTitle: { fontSize: 32, fontWeight: '900' },
-
   profileCard: { borderRadius: 30, padding: 25, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, elevation: 8 },
   avatarWrapper: { marginBottom: 15, position: 'relative' },
   avatarGradient: { width: 110, height: 110, borderRadius: 55, justifyContent: 'center', alignItems: 'center', overflow: 'hidden', borderWidth: 3, borderColor: '#fff' },
   profileImg: { width: '100%', height: '100%' },
   cameraIconBadge: { position: 'absolute', bottom: 5, right: 5, backgroundColor: '#EE5253', width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' },
-  
   userName: { fontSize: 24, fontWeight: 'bold', marginBottom: 2 },
   userEmail: { fontSize: 14, color: '#ADADAD', marginBottom: 25 },
-
   statsContainer: { flexDirection: 'row', width: '100%', justifyContent: 'space-around', alignItems: 'center' },
   statBox: { alignItems: 'center' },
   statNumber: { fontSize: 22, fontWeight: 'bold' },
   statLabel: { fontSize: 12, opacity: 0.6 },
   divider: { width: 1, height: 35 },
-
   menuContainer: { marginTop: 25 },
   menuItem: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 22, marginBottom: 15, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 },
   iconCircle: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   menuText: { flex: 1, marginLeft: 15, fontSize: 16, fontWeight: '600' },
-
   logoutBtnShadow: { marginTop: 15, shadowColor: '#EE5253', shadowOpacity: 0.4, shadowRadius: 15, elevation: 10 },
   logoutBtn: { height: 58, borderRadius: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   logoutText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }

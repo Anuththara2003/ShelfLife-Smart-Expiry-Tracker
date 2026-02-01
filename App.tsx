@@ -12,16 +12,21 @@ import Inventory from './app/inventory';
 import AddItem from './app/additem';
 import Profile from './app/profile';
 import EditItem from './app/edititem';
+import SecuritySettings from './app/security'; 
+//import Notifications from './app/notifications'; 
 
 // Theme Context සහ Colors Import කිරීම
-import { ThemeProvider, useTheme } from '../ShelfLife/constants/ThemeContext';
+import { ThemeProvider, useTheme } from './constants/ThemeContext'; 
 import { Colors } from './constants/Colors';
 
+// TypeScript සඳහා Routes ලැයිස්තුව Update කරන ලදී
 export type RootStackParamList = {
   Login: undefined;
   SignUp: undefined;
-  MainTabs: undefined;
+  MainTabs: undefined; 
   EditItem: { itemId: string };
+  Security: undefined;    
+  Notifications: undefined; 
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -29,7 +34,6 @@ const Tab = createBottomTabNavigator();
 
 // 1. යටින් තියෙන ටැබ් පද්ධතිය (Bottom Tabs)
 function MainTabs() {
-  // පොදු Theme එක මෙතනට ලබා ගැනීම
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
@@ -40,12 +44,11 @@ function MainTabs() {
         headerShown: false,
         tabBarActiveTintColor: '#EE5253',
         tabBarInactiveTintColor: 'gray',
-        // මෙන්න මෙතන තමයි Footer එකේ පාට මාරු වෙන්නේ
         tabBarStyle: { 
-          backgroundColor: theme.card, // Dark mode එකේදී කළු/තද අළු පාට වේ
+          backgroundColor: theme.card, 
           height: 60, 
           paddingBottom: 10,
-          borderTopWidth: isDarkMode ? 0 : 1, // Dark mode එකේදී උඩ ඉර අයින් කරයි
+          borderTopWidth: isDarkMode ? 0 : 1, 
           elevation: 10 
         },
         tabBarIcon: ({ focused, color, size }) => {
@@ -66,7 +69,7 @@ function MainTabs() {
   );
 }
 
-// 2. ප්‍රධාන Navigator එක (ThemeProvider එකෙන් Wrap කර ඇත)
+// 2. ප්‍රධාන Navigator එක
 export default function App() {
   return (
     <ThemeProvider>
@@ -76,6 +79,11 @@ export default function App() {
           <Stack.Screen name="SignUp" component={SignUpScreen} />
           <Stack.Screen name="MainTabs" component={MainTabs} /> 
           <Stack.Screen name="EditItem" component={EditItem} />
+          
+          {/* අලුත් පිටු දෙක මෙතනට Register කළා */}
+          <Stack.Screen name="Security" component={SecuritySettings} />
+          {/* <Stack.Screen name="Notifications" component={Notifications} /> */}
+          
         </Stack.Navigator>
       </NavigationContainer>
     </ThemeProvider>
