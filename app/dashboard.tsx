@@ -3,18 +3,19 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Activ
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { db, auth } from '../config/firebase';
-import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
 import { Colors } from '../constants/Colors'; 
 import { useTheme } from '../constants/ThemeContext'; 
+
 const { width } = Dimensions.get('window');
 
 const Dashboard = ({ navigation }: any) => {
     const [userName, setUserName] = useState('User');
+    const [profileImage, setProfileImage] = useState<string | null>(null); //profile image state
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [expiringSoonCount, setExpiringSoonCount] = useState(0);
 
-    // පරණ useState එක වෙනුවට පොදු Theme එක ලබා ගැනීම
     const { isDarkMode, toggleTheme } = useTheme(); 
     const theme = isDarkMode ? Colors.dark : Colors.light;
 
@@ -22,14 +23,19 @@ const Dashboard = ({ navigation }: any) => {
         const user = auth.currentUser;
         if (!user) return;
 
-        const fetchUserName = async () => {
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists()) setUserName(userDoc.data().fullName);
-        };
-        fetchUserName();
+        // 1. යූසර්ගේ දත්ත (Name & Profile Image) Live කියවීම
+        const userDocRef = doc(db, "users", user.uid);
+        const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setUserName(data.fullName);
+                setProfileImage(data.profileImageUri || null); // pick profile image
+            }
+        });
 
+        // 2. අයිතම Live කියවීම
         const q = query(collection(db, "items"), where("userId", "==", user.uid));
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const unsubscribeItems = onSnapshot(q, (querySnapshot) => {
             const itemsArray: any[] = [];
             let expiringCount = 0;
             const today = new Date();
@@ -48,7 +54,11 @@ const Dashboard = ({ navigation }: any) => {
             setLoading(false);
         });
 
-        return () => unsubscribe();
+        // අයින් වෙද්දී listeners දෙකම නතර කිරීම
+        return () => {
+            unsubscribeUser();
+            unsubscribeItems();
+        };
     }, []);
 
     if (loading) {
@@ -71,20 +81,17 @@ const Dashboard = ({ navigation }: any) => {
                     </View>
 
                     <View style={styles.headerIcons}>
-                        {/* Theme Toggle Button */}
-                        <TouchableOpacity
-                            onPress={toggleTheme}
-                            style={[styles.iconBtn, { backgroundColor: isDarkMode ? '#2D3436' : '#fff' }]}
-                        >
-                            <Ionicons
-                                name={isDarkMode ? "sunny" : "moon"}
-                                size={22}
-                                color={isDarkMode ? "#FFCC00" : "#2D3436"}
-                            />
+                        <TouchableOpacity onPress={toggleTheme} style={[styles.iconBtn, { backgroundColor: isDarkMode ? '#2D3436' : '#fff' }]}>
+                            <Ionicons name={isDarkMode ? "sunny" : "moon"} size={22} color={isDarkMode ? "#FFCC00" : "#2D3436"} />
                         </TouchableOpacity>
 
+                        {/* මෙන්න මෙතන තමයි පින්තූරය පෙන්වන්නේ */}
                         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-                            <Ionicons name="person-circle-outline" size={45} color={theme.text} />
+                            {profileImage ? (
+                                <Image source={{ uri: profileImage }} style={styles.headerProfileImg} />
+                            ) : (
+                                <Ionicons name="person-circle-outline" size={48} color={theme.text} />
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -102,6 +109,7 @@ const Dashboard = ({ navigation }: any) => {
                     </View>
                 </LinearGradient>
 
+                {/* Expiring Soon */}
                 <View style={styles.sectionHeader}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Expiring Soon</Text>
                     <TouchableOpacity onPress={() => navigation.navigate('Inventory', { category: 'All' })}>
@@ -111,7 +119,7 @@ const Dashboard = ({ navigation }: any) => {
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
                     {items.length === 0 ? (
-                        <Text style={styles.emptyText}>No items added yet.</Text>
+                        <Text style={[styles.emptyText, {color: isDarkMode ? '#555' : '#ADADAD'}]}>No items added yet.</Text>
                     ) : (
                         items.map((item) => {
                             const expDate = new Date(item.expiryDate);
@@ -119,11 +127,7 @@ const Dashboard = ({ navigation }: any) => {
                             const cardColor = diffDays <= 3 ? '#EE5253' : '#FF9F43';
 
                             return (
-                                <TouchableOpacity
-                                    key={item.id}
-                                    activeOpacity={0.8}
-                                    onPress={() => navigation.navigate('EditItem', { itemId: item.id })}
-                                >
+                                <TouchableOpacity key={item.id} activeOpacity={0.8} onPress={() => navigation.navigate('EditItem', { itemId: item.id })}>
                                     <View style={[styles.expiryCard, { borderColor: cardColor, backgroundColor: theme.card }]}>
                                         {item.imageUri ? (
                                             <Image source={{ uri: item.imageUri }} style={styles.itemImage} />
@@ -143,14 +147,11 @@ const Dashboard = ({ navigation }: any) => {
                     )}
                 </ScrollView>
 
+                {/* Categories */}
                 <Text style={[styles.sectionTitle, { color: theme.text }]}>Categories</Text>
                 <View style={styles.categoryGrid}>
                     {['Food', 'Medicine', 'Dairy', 'Other'].map((cat) => (
-                        <TouchableOpacity
-                            key={cat}
-                            style={[styles.categoryBtn, { backgroundColor: theme.card }]}
-                            onPress={() => navigation.navigate('Inventory', { category: cat })}
-                        >
+                        <TouchableOpacity key={cat} style={[styles.categoryBtn, { backgroundColor: theme.card }]} onPress={() => navigation.navigate('Inventory', { category: cat })}>
                             <Text style={[styles.categoryText, { color: theme.text }]}>{cat}</Text>
                         </TouchableOpacity>
                     ))}
@@ -174,7 +175,11 @@ const styles = StyleSheet.create({
     topCircle: { position: 'absolute', width: width * 1, height: width * 1, borderRadius: width * 0.5, top: -width * 0.4, right: -width * 0.2 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30, width: '100%' },
     headerIcons: { flexDirection: 'row', alignItems: 'center', marginLeft: 10 },
-    iconBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 8, elevation: 4, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 5 },
+    iconBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 10, elevation: 4, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 5 },
+    
+    // Header Profile පින්තූරය සඳහා Style
+    headerProfileImg: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#fff' },
+
     greetText: { fontSize: 24, fontWeight: 'bold' },
     subGreet: { fontSize: 14, color: '#ADADAD' },
     summaryCard: { borderRadius: 25, padding: 25, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', elevation: 10, shadowColor: '#EE5253', shadowOpacity: 0.3, shadowRadius: 10 },
@@ -191,7 +196,7 @@ const styles = StyleSheet.create({
     imagePlaceholder: { width: 55, height: 55, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
     itemName: { fontSize: 15, fontWeight: 'bold', textAlign: 'center' },
     daysLeft: { fontSize: 12, fontWeight: '700', marginTop: 3 },
-    emptyText: { color: '#ADADAD', fontStyle: 'italic', marginLeft: 5 },
+    emptyText: { fontStyle: 'italic', marginLeft: 5 },
     categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 10 },
     categoryBtn: { width: '47%', padding: 20, borderRadius: 15, marginBottom: 15, alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 },
     categoryText: { fontWeight: 'bold' },
