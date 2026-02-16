@@ -6,24 +6,28 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { db, auth } from '../config/firebase';
-import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
-import { showMessage } from "react-native-flash-message"; // Flash Message Import
 
-// Theme සහ Colors Import කිරීම
-import { useTheme } from '../constants/ThemeContext';
-import { Colors } from '../constants/Colors';
+import { useRouter, useLocalSearchParams } from 'expo-router'; 
+
+import { db, auth } from '../../services/firebase'; 
+import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
+import { showMessage } from "react-native-flash-message"; 
+import { useTheme } from '../../constants/ThemeContext';
+import { Colors } from '../../constants/Colors';
 
 const { width, height } = Dimensions.get('window');
 
-const Inventory = ({ route, navigation }: any) => {
+const Inventory = () => {
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const router = useRouter(); 
+    const params = useLocalSearchParams(); 
+    
     const { isDarkMode } = useTheme();
     const theme = isDarkMode ? Colors.dark : Colors.light;
 
-    const selectedCategory = route.params?.category || 'All';
+    const selectedCategory = (params.category as string) || 'All';
 
     useEffect(() => {
         const user = auth.currentUser;
@@ -49,7 +53,6 @@ const Inventory = ({ route, navigation }: any) => {
         return () => unsubscribe();
     }, [selectedCategory]);
 
-    // Delete Function එක Flash Message සමඟ
     const handleDelete = (id: string, itemName: string) => {
         Alert.alert("Delete Item", `Are you sure you want to remove ${itemName}?`, [
             { text: "Cancel", style: "cancel" },
@@ -57,12 +60,11 @@ const Inventory = ({ route, navigation }: any) => {
                 text: "Delete", style: "destructive", onPress: async () => {
                     try {
                         await deleteDoc(doc(db, "items", id));
-                        // සාර්ථක පණිවිඩය
                         showMessage({
                             message: "Item Removed",
-                            description: `${itemName} has been deleted from your pantry.`,
+                            description: `${itemName} deleted successfully.`,
                             type: "success",
-                            backgroundColor: "#EE5253", // ඔයාගේ Coral Red එක පාවිච්චි කළා
+                            backgroundColor: "#EE5253",
                             icon: "success",
                         });
                     } catch (error: any) {
@@ -71,7 +73,6 @@ const Inventory = ({ route, navigation }: any) => {
                             description: error.message,
                             type: "danger",
                             backgroundColor: "#EE5253",
-                            icon: "danger",
                         });
                     }
                 }
@@ -90,7 +91,7 @@ const Inventory = ({ route, navigation }: any) => {
             <TouchableOpacity
                 activeOpacity={0.9}
                 style={[styles.itemCard, { backgroundColor: theme.card, borderColor: isDarkMode ? '#333' : '#fff' }]}
-                onPress={() => navigation.navigate('EditItem', { itemId: item.id })}
+                onPress={() => router.push({ pathname: '/edititem', params: { itemId: item.id } })}
             >
                 <View style={styles.itemImageContainer}>
                     {item.imageUri ? (
@@ -113,7 +114,6 @@ const Inventory = ({ route, navigation }: any) => {
                     </Text>
                 </View>
 
-                {/* Delete Button එකේදී අයිතමයේ නමද ලබා දේ */}
                 <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item.id, item.name)}>
                     <Ionicons name="trash-outline" size={22} color="#EE5253" />
                 </TouchableOpacity>
@@ -124,9 +124,7 @@ const Inventory = ({ route, navigation }: any) => {
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
             <StatusBar style={isDarkMode ? "light" : "dark"} />
-            
             <View style={[styles.topCircle, { backgroundColor: isDarkMode ? '#FF6B6B05' : '#FF6B6B15' }]} />
-            <View style={[styles.bottomCircle, { backgroundColor: isDarkMode ? '#FF6B6B03' : '#FF6B6B10' }]} />
 
             <View style={styles.header}>
                 <View>
@@ -155,7 +153,7 @@ const Inventory = ({ route, navigation }: any) => {
                         <View style={styles.emptyContainer}>
                             <Ionicons name="basket-outline" size={100} color={isDarkMode ? "#333" : "#DDD"} />
                             <Text style={styles.emptyText}>Your pantry is empty!</Text>
-                            <TouchableOpacity onPress={() => navigation.navigate('Add')} style={styles.addNowBtn}>
+                            <TouchableOpacity onPress={() => router.push('/additem')} style={styles.addNowBtn}>
                                 <Text style={styles.addNowText}>Add Item Now</Text>
                             </TouchableOpacity>
                         </View>
@@ -170,7 +168,6 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     topCircle: { position: 'absolute', width: width * 1.3, height: width * 1.3, borderRadius: width * 0.65, top: -height * 0.25, right: -width * 0.3 },
-    bottomCircle: { position: 'absolute', width: width * 1.1, height: width * 1.1, borderRadius: width * 0.55, bottom: -height * 0.15, left: -width * 0.4 },
     header: { paddingHorizontal: 25, paddingTop: 65, paddingBottom: 25, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     title: { fontSize: 30, fontWeight: '900' },
     subTitle: { fontSize: 14, color: '#ADADAD', marginTop: 3, fontWeight: '500' },

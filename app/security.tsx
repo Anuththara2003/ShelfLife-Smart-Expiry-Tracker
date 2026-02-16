@@ -6,12 +6,12 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { auth, db } from '../config/firebase';
+import { auth, db } from '../services/firebase';
 import { updatePassword } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useTheme } from '../constants/ThemeContext';
 import { Colors } from '../constants/Colors';
-import { showMessage } from "react-native-flash-message"; // Flash Message Import
+import { showMessage } from "react-native-flash-message"; 
 
 const { width, height } = Dimensions.get('window');
 
@@ -24,13 +24,12 @@ const PrivacySecurity = ({ navigation }: any) => {
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
   const handleUpdate = async () => {
-    // 1. මුකුත්ම ඇතුළත් කර නැතිනම්
     if (!newName && !newPassword) {
       showMessage({
         message: "Notice",
         description: "Please enter a name or password to update.",
         type: "info",
-        backgroundColor: "#FF9F43", // තැඹිලි පාට
+        backgroundColor: "#FF9F43", 
         icon: "info",
       });
       return;
@@ -40,12 +39,10 @@ const PrivacySecurity = ({ navigation }: any) => {
     try {
       const user: any = auth.currentUser;
       
-      // 2. නම Update කිරීම (Firestore)
       if (newName) {
         await updateDoc(doc(db, "users", user.uid), { fullName: newName });
       }
       
-      // 3. Password Update කිරීම (Auth)
       if (newPassword) {
         if (newPassword.length < 6) {
             showMessage({
@@ -61,7 +58,6 @@ const PrivacySecurity = ({ navigation }: any) => {
         await updatePassword(user, newPassword);
       }
       
-      // සාර්ථක පණිවිඩය
       showMessage({
         message: "Security Updated!",
         description: "Your changes have been saved successfully.",
@@ -70,7 +66,6 @@ const PrivacySecurity = ({ navigation }: any) => {
         icon: "success",
       });
 
-      // තත්පර 1.5 කට පසු ආපසු යෑම
       setTimeout(() => {
         navigation.goBack();
       }, 1500);

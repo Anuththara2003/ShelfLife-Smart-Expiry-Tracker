@@ -7,13 +7,13 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import { showMessage } from "react-native-flash-message"; // Flash Message Import
+import { showMessage } from "react-native-flash-message"; 
 
-// Firebase සහ Theme Imports
-import { auth, db } from '../config/firebase';
+import { auth, db } from '../../services/firebase';
 import { doc, getDoc, collection, query, where, onSnapshot, getDocs, updateDoc } from 'firebase/firestore';
-import { useTheme } from '../constants/ThemeContext'; 
-import { Colors } from '../constants/Colors';
+import { useTheme } from '../../constants/ThemeContext'; 
+import { Colors } from '../../constants/Colors';
+import { useRouter } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 
@@ -21,6 +21,8 @@ const Profile = ({ navigation }: any) => {
   const [userData, setUserData] = useState<any>(null);
   const [itemCount, setItemCount] = useState(0);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  const router = useRouter();
   
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? Colors.dark : Colors.light;
@@ -63,7 +65,6 @@ const Profile = ({ navigation }: any) => {
         const user = auth.currentUser;
         if (user) {
           await updateDoc(doc(db, "users", user.uid), { profileImageUri: uri });
-          // පින්තූරය මාරු වූ පසු පණිවිඩය
           showMessage({
             message: "Success",
             description: "Profile picture updated successfully!",
@@ -88,7 +89,6 @@ const Profile = ({ navigation }: any) => {
       { text: "Cancel", style: "cancel" },
       { text: "Logout", style: "destructive", onPress: async () => {
         await auth.signOut();
-        // Logout වූ පසු පණිවිඩය
         showMessage({
           message: "Signed Out",
           description: "Come back soon!",
@@ -127,12 +127,12 @@ const Profile = ({ navigation }: any) => {
         </View>
 
         <View style={styles.menuContainer}>
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.card }]} onPress={() => navigation.navigate('Notifications')}>
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.card }]} onPress={() => router.push('/notifications')}>
             <View style={[styles.iconCircle, {backgroundColor: '#FF6B6B20'}]}><Ionicons name="notifications" size={20} color="#EE5253" /></View>
             <Text style={[styles.menuText, { color: theme.text }]}>Notifications</Text>
             <Ionicons name="chevron-forward" size={18} color="#DDD" />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.card }]} onPress={() => navigation.navigate('Security')}>
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.card }]} onPress={() => router.push('/security')}>
             <View style={[styles.iconCircle, {backgroundColor: '#4CAF5020'}]}><Ionicons name="shield-checkmark" size={20} color="#4CAF50" /></View>
             <Text style={[styles.menuText, { color: theme.text }]}>Privacy & Security</Text>
             <Ionicons name="chevron-forward" size={18} color="#DDD" />

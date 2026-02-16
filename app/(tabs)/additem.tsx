@@ -11,10 +11,10 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { showMessage } from "react-native-flash-message"; // Flash message import කළා
 
 // Firebase සහ Theme Imports
-import { db, auth } from '../config/firebase';
+import { db, auth } from '../../services/firebase';
 import { collection, addDoc } from 'firebase/firestore';
-import { useTheme } from '../constants/ThemeContext';
-import { Colors } from '../constants/Colors';
+import { useTheme } from '../../constants/ThemeContext';
+import { Colors } from '../../constants/Colors';
 
 const { width, height } = Dimensions.get('window');
 
@@ -52,7 +52,7 @@ const AddItem = ({ navigation }: any) => {
         message: "Missing Details",
         description: "Please enter the item name and select an expiry date.",
         type: "danger",
-        backgroundColor: "#EE5253", // ඔයාගේ රතු පාට
+        backgroundColor: "#EE5253", 
         icon: "warning",
       });
       return;
@@ -74,20 +74,18 @@ const AddItem = ({ navigation }: any) => {
         message: "Success!",
         description: `${name} has been added to your pantry.`,
         type: "success",
-        backgroundColor: "#4CAF50", // කොළ පාට
+        backgroundColor: "#4CAF50", 
         icon: "success",
       });
 
-      // විස්තර Clear කර Home එකට යැවීම
       setTimeout(() => {
         setName('');
         setExpiryDate(null);
         setImage(null);
         navigation.navigate('Home'); 
-      }, 1500); // තත්පර 1.5 කට පසු navigate වේ
+      }, 1500); 
 
     } catch (error: any) {
-      // 3. Error පණිවිඩය
       showMessage({
         message: "Error",
         description: error.message,

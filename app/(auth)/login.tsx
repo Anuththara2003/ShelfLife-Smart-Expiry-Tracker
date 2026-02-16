@@ -7,27 +7,31 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 
 // Firebase සහ Flash Message Imports
-import { auth } from '../config/firebase'; 
+import { auth } from '../../services/firebase'; 
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { showMessage } from "react-native-flash-message"; // අලුතින් එක් කළා
+import { showMessage } from "react-native-flash-message"; 
 
 const { width, height } = Dimensions.get('window');
 
-const LoginScreen = ({ navigation }: any) => {
+const Login = ({ navigation }: any) => {
+
+  const router = useRouter(); 
+
   const [email, setEmail] = useState<string>(''); 
   const [password, setPassword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
   const handleLogin = async () => {
-    // 1. Validation (දත්ත ඇතුළත් කර ඇත්දැයි බැලීම)
+   
     if (email === '' || password === '') {
       showMessage({
         message: "Missing Credentials",
         description: "Please enter both email and password to login.",
         type: "danger",
-        backgroundColor: "#EE5253", // ඔයාගේ Coral Red පාට
+        backgroundColor: "#EE5253", 
         icon: "warning",
       });
       return;
@@ -35,10 +39,10 @@ const LoginScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      // Firebase Login
+     
       await signInWithEmailAndPassword(auth, email, password);
       
-      // සාර්ථක පණිවිඩය (Redirect වීමට පෙර තත්පරයකට පෙන්වයි)
+      
       showMessage({
         message: "Welcome Back!",
         description: "Login successful.",
@@ -47,10 +51,10 @@ const LoginScreen = ({ navigation }: any) => {
         icon: "success",
       });
 
-      navigation.replace('MainTabs'); 
+       router.replace('/home');
 
     } catch (error: any) {
-      // Login අසාර්ථක වුවහොත්
+    
       showMessage({
         message: "Login Failed",
         description: "Invalid email or password. Please try again.",
@@ -135,7 +139,7 @@ const LoginScreen = ({ navigation }: any) => {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+          <TouchableOpacity onPress={() => router.push('/signup')}>
             <Text style={styles.signUpText}>Sign Up</Text>
           </TouchableOpacity>
         </View>
@@ -167,4 +171,4 @@ const styles = StyleSheet.create({
   signUpText: { color: '#EE5253', fontWeight: 'bold' }
 });
 
-export default LoginScreen;
+export default Login;

@@ -9,15 +9,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Firebase සහ Flash Message Imports
-import { auth, db } from '../config/firebase';
+import { auth, db } from '../../services/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { ActivityIndicator } from 'react-native';
 import { doc, setDoc } from 'firebase/firestore';
 import { showMessage } from "react-native-flash-message"; // අලුතින් එක් කළා
+import { router } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 
-const SignUpScreen = ({ navigation }: any) => {
+const SignUp = ({ navigation }: any) => {
   const [name, setName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -26,7 +27,7 @@ const SignUpScreen = ({ navigation }: any) => {
 
   // Register Logic
   const handleSignUp = async () => {
-    // 1. Validation (දත්ත නිවැරදිදැයි බැලීම)
+    
     if (email === '' || password === '' || name === '') {
       showMessage({
         message: "Missing Information",
@@ -51,11 +52,10 @@ const SignUpScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      // Firebase Auth හරහා User කෙනෙක් හදනවා
+     
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Firestore හි User දත්ත Save කරනවා
       await setDoc(doc(db, "users", user.uid), {
         fullName: name,
         email: email,
@@ -63,19 +63,17 @@ const SignUpScreen = ({ navigation }: any) => {
         createdAt: new Date().toISOString()
       });
 
-      // සාර්ථක පණිවිඩය (Success Message)
       showMessage({
         message: "Success!",
         description: "Account created successfully! You can now login.",
         type: "success",
-        backgroundColor: "#4CAF50", // කොළ පාට
+        backgroundColor: "#4CAF50", 
         icon: "success",
       });
 
       navigation.navigate('Login');
 
     } catch (error: any) {
-      // වැරැද්දක් වුණොත් පෙන්වන පණිවිඩය
       showMessage({
         message: "Registration Failed",
         description: error.message,
@@ -143,7 +141,7 @@ const SignUpScreen = ({ navigation }: any) => {
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <TouchableOpacity onPress={() => router.push('/login')}>
               <Text style={styles.signInText}>Login</Text>
             </TouchableOpacity>
           </View>
@@ -173,4 +171,4 @@ const styles = StyleSheet.create({
   signInText: { color: '#EE5253', fontWeight: 'bold' }
 });
 
-export default SignUpScreen;
+export default SignUp;

@@ -9,18 +9,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-import { showMessage } from "react-native-flash-message"; // Flash Message Import
+import { showMessage } from "react-native-flash-message";
 
-// Firebase සහ Theme Imports
-import { db } from '../config/firebase';
+import { useLocalSearchParams, useRouter } from 'expo-router'; 
+
+import { db } from '../../services/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { useTheme } from '../constants/ThemeContext';
-import { Colors } from '../constants/Colors';
+import { useTheme } from '../../constants/ThemeContext';
+import { Colors } from '../../constants/Colors';
 
 const { width, height } = Dimensions.get('window');
 
-const EditItem = ({ route, navigation }: any) => {
-  const { itemId } = route.params;
+export default function EditItem() {
+  const { itemId } = useLocalSearchParams(); 
+  const router = useRouter(); 
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
@@ -33,11 +35,11 @@ const EditItem = ({ route, navigation }: any) => {
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
-  // දත්ත කියවා ගැනීම
   useEffect(() => {
     const fetchItem = async () => {
+      if (!itemId) return;
       try {
-        const docRef = doc(db, "items", itemId);
+        const docRef = doc(db, "items", itemId as string);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -85,7 +87,7 @@ const EditItem = ({ route, navigation }: any) => {
 
     setUpdating(true);
     try {
-      const docRef = doc(db, "items", itemId);
+      const docRef = doc(db, "items", itemId as string);
       await updateDoc(docRef, {
         name: name,
         category: category,
@@ -93,7 +95,6 @@ const EditItem = ({ route, navigation }: any) => {
         imageUri: image,
       });
 
-      // සාර්ථක පණිවිඩය
       showMessage({
         message: "Updated Successfully!",
         description: `${name} has been updated.`,
@@ -104,7 +105,7 @@ const EditItem = ({ route, navigation }: any) => {
 
       // තත්පර 1.5 කට පසු ආපසු යෑම
       setTimeout(() => {
-        navigation.goBack();
+        router.back();
       }, 1500);
 
     } catch (error: any) {
@@ -113,7 +114,6 @@ const EditItem = ({ route, navigation }: any) => {
         description: error.message,
         type: "danger",
         backgroundColor: "#EE5253",
-        icon: "danger",
       });
     } finally {
       setUpdating(false);
@@ -139,8 +139,9 @@ const EditItem = ({ route, navigation }: any) => {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           
+          {/* Custom Header with Back Button */}
           <View style={styles.customHeader}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backCircle, { backgroundColor: isDarkMode ? '#333' : '#fff' }]}>
+            <TouchableOpacity onPress={() => router.back()} style={[styles.backCircle, { backgroundColor: isDarkMode ? '#333' : '#fff' }]}>
               <Ionicons name="arrow-back" size={24} color={theme.text} />
             </TouchableOpacity>
             <Text style={[styles.headerTitle, { color: theme.text }]}>Edit <Text style={{color: '#EE5253'}}>Item</Text></Text>
@@ -216,17 +217,16 @@ const EditItem = ({ route, navigation }: any) => {
       <DateTimePickerModal isVisible={isDatePickerVisible} mode="date" onConfirm={(date) => { setExpiryDate(date); setDatePickerVisibility(false); }} onCancel={() => setDatePickerVisibility(false)} />
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  innerContainer: { flex: 1 },
   scrollContent: { paddingHorizontal: 30, paddingVertical: 50 },
   topCircle: { position: 'absolute', width: width * 1.3, height: width * 1.3, borderRadius: width * 0.65, top: -height * 0.25, right: -width * 0.3 },
   bottomCircle: { position: 'absolute', width: width * 1.1, height: width * 1.1, borderRadius: width * 0.55, bottom: -height * 0.15, left: -width * 0.4 },
   customHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
-  backCircle: { width: 45, height: 45, borderRadius: 23, justifyContent: 'center', alignItems: 'center', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5 },
+  backCircle: { width: 45, height: 45, borderRadius: 23, justifyContent: 'center', alignItems: 'center', elevation: 4 },
   headerTitle: { fontSize: 28, fontWeight: '900', marginLeft: 20 },
   card: { borderRadius: 30, padding: 25, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 30, elevation: 12 },
   imagePicker: { width: '100%', height: 160, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 25, borderStyle: 'dashed', borderWidth: 1 },
@@ -246,5 +246,3 @@ const styles = StyleSheet.create({
   updateButton: { height: 55, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
   updateButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }
 });
-
-export default EditItem;
